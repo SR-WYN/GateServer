@@ -82,3 +82,10 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 /.qtcreator/
+
+# Postman related
+.postman/
+postman/
+Postman/
+postman_data/
+*.postman_dump.json

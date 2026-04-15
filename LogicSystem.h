@@ -13,6 +13,8 @@ public:
     ~LogicSystem();
     bool HandleGet(std::string,std::shared_ptr<HttpConnection>);
     void RegGet(std::string,HttpHandler);
+    void RegPost(std::string,HttpHandler);
+    bool HandlePost(std::string,std::shared_ptr<HttpConnection>);
 
 private:
     LogicSystem();

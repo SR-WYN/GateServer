@@ -68,6 +68,7 @@ set(SOURCE_FILES
     CServer.cpp
     HttpConnection.cpp
     LogicSystem.cpp
+    utils.cpp
 )
 
 # --- 4. 定义生成目标 ---

@@ -69,6 +69,8 @@ set(SOURCE_FILES
     HttpConnection.cpp
     LogicSystem.cpp
     utils.cpp
+    VerifyGrpcClient.cpp
+    ConfigMgr.cpp
 )
 
 # --- 4. 定义生成目标 ---
@@ -96,4 +98,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     gRPC::grpc++
     gRPC::grpc++_reflection
     protobuf::libprotobuf
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/config.json"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>/config.json"
+    COMMENT "Copying config.json to execution directory..."
 )

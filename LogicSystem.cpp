@@ -31,7 +31,7 @@ LogicSystem::LogicSystem()
                        << "param " << i << " value is " << elem.second << std::endl;
                }
            });
-    RegPost("/get_varifycode",
+    RegPost("/get_verify_code",
             [](std::shared_ptr<HttpConnection> connection) -> bool
             {
                 auto body_str =

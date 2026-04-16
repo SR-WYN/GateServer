@@ -89,3 +89,7 @@ postman/
 Postman/
 postman_data/
 *.postman_dump.json
+
+node_modules/
+.env
+npm-debug.log*

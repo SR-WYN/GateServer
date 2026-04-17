@@ -1,8 +1,8 @@
 #include "HttpConnection.h"
 #include "LogicSystem.h"
 #include "utils.h"
-HttpConnection::HttpConnection(tcp::socket socket)
-    : _socket(std::move(socket))
+HttpConnection::HttpConnection(boost::asio::io_context& ioc)
+    : _socket(ioc)
 {
 }
 
@@ -53,7 +53,7 @@ void HttpConnection::PreParseGetParam()
         size_t eq_pos = pair.find('=');
         if (eq_pos != std::string::npos)
         {
-            key = utils::UrlDecode(pair.substr(0, eq_pos)); 
+            key = utils::UrlDecode(pair.substr(0, eq_pos));
             value = utils::UrlDecode(pair.substr(eq_pos + 1));
             _get_params[key] = value;
         }
@@ -149,7 +149,12 @@ http::request<http::dynamic_body>& HttpConnection::GetRequest()
     return _request;
 }
 
-std::unordered_map<std::string,std::string>& HttpConnection::GetParams()
+std::unordered_map<std::string, std::string>& HttpConnection::GetParams()
 {
     return _get_params;
+}
+
+tcp::socket& HttpConnection::GetSocket()
+{
+    return _socket;
 }

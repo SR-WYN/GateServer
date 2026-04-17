@@ -71,6 +71,8 @@ set(SOURCE_FILES
     utils.cpp
     VerifyGrpcClient.cpp
     ConfigMgr.cpp
+    AsioIOServicePool.cpp
+    RPConPool.cpp
 )
 
 # --- 4. 定义生成目标 ---

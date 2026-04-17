@@ -8,8 +8,9 @@
 class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 {
 public:
-    HttpConnection(tcp::socket socket);
+    HttpConnection(boost::asio::io_context& ioc);
     void Start();
+    tcp::socket& GetSocket();
     http::response<http::dynamic_body>& GetResponse();
     http::request<http::dynamic_body>& GetRequest();
     std::unordered_map<std::string,std::string>& GetParams();

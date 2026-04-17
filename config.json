@@ -3,6 +3,7 @@
     "Port": 7979
   },
   "VerifyServer": {
+    "Host": "127.0.0.1",
     "Port": 50051
   }
 }

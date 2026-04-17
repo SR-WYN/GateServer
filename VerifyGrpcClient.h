@@ -5,6 +5,7 @@
 #include "message.grpc.pb.h"
 #include "message.pb.h"
 #include <grpcpp/grpcpp.h>
+#include <memory>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -13,6 +14,8 @@ using grpc::Status;
 using message::GetVerifyReq;
 using message::GetVerifyRsp;
 using message::VerifyService;
+
+class RPConPool;
 
 class VerifyGrpcClient : public Singleton<VerifyGrpcClient>
 {
@@ -24,5 +27,5 @@ public:
 
 private:
     VerifyGrpcClient();
-    std::unique_ptr<VerifyService::Stub> _stub;
+    std::unique_ptr<RPConPool> _pool;
 };

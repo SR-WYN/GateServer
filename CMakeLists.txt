@@ -11,6 +11,7 @@ find_package(Boost REQUIRED COMPONENTS system thread filesystem)
 find_package(jsoncpp REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
+find_library(HIREDIS_LIB hiredis REQUIRED)
 
 # 这里的程序名（用于获取 protoc 插件路径）
 find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
@@ -73,6 +74,8 @@ set(SOURCE_FILES
     ConfigMgr.cpp
     AsioIOServicePool.cpp
     RPConPool.cpp
+    RedisMgr.cpp
+    RedisConPool.cpp
 )
 
 # --- 4. 定义生成目标 ---
@@ -100,6 +103,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     gRPC::grpc++
     gRPC::grpc++_reflection
     protobuf::libprotobuf
+    hiredis
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

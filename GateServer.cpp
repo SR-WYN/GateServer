@@ -19,7 +19,7 @@ int main()
     try
     {
         init();
-        TestRedisMgr();
+        // TestRedisMgr();
         // TestRedis();
         {
             auto& config = ConfigMgr::GetInstance();

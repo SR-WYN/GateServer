@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <string>
 
 namespace utils
@@ -15,5 +16,17 @@ std::string UrlEncode(const std::string& str);
 
 // 对URL进行解码
 std::string UrlDecode(const std::string& str);
+
+class Defer
+{
+public:
+    explicit Defer(std::function<void()> func);
+    ~Defer();
+    Defer(const Defer&) = delete;
+    Defer& operator=(const Defer&) = delete;
+
+private:
+    std::function<void()> _func;
+};
 
 } // namespace utils

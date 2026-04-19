@@ -6,6 +6,13 @@
     "Host": "127.0.0.1",
     "Port": 50051
   },
+  "MySql": {
+    "Host": "127.0.0.1",
+    "Port": 3307,
+    "User": "root",
+    "Passwd": "root",
+    "Schema": "loadbalancer"
+  },
   "Redis": {
     "Host": "127.0.0.1",
     "Port": 6379,

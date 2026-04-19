@@ -3,6 +3,7 @@
 #include "RedisMgr.h"
 #include "VerifyGrpcClient.h"
 #include "const.h"
+#include "MysqlMgr.h"
 
 LogicSystem::~LogicSystem()
 {
@@ -120,11 +121,23 @@ LogicSystem::LogicSystem()
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
                     return true;
                 }
+
+                auto name = src_root["user"].asString();
+                auto email = src_root["email"].asString();
+                int uid = MysqlMgr::GetInstance().RegUser(name,email,passwd);
+                if (uid == 0 || uid == -1)
+                {
+                    std::cout << "user or email exist" << std::endl;
+                    root["error"] = ErrorCodes::USER_EXIST;
+                    std::string jsonstr = root.toStyledString();
+                    beast::ostream(connection->GetResponse().body()) << jsonstr;
+                    return true;
+                }
                 root["error"] = ErrorCodes::SUCCESS;
-                root["email"] = src_root["email"];
-                root["user"] = src_root["user"].asString();
-                root["passwd"] = src_root["passwd"].asString();
-                root["confirm"] = src_root["confirm"].asString();
+                root["email"] = email;
+                root["user"] = name;
+                root["passwd"] = passwd;
+                root["confirm"] = confirm;
                 root["verify_code"] = src_root["verify_code"].asString();
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;

@@ -1,8 +1,10 @@
 #include "MySqlDao.h"
 #include "ConfigMgr.h"
 #include "MySqlPool.h"
+#include "utils.h"
 #include <cppconn/connection.h>
 #include <cppconn/prepared_statement.h>
+#include <iostream>
 
 MySqlDao::MySqlDao()
 {
@@ -124,6 +126,55 @@ bool MySqlDao::UpdatePwd(const std::string& email, const std::string& pwd)
     catch (sql::SQLException& e)
     {
         _pool->ReturnConnection(std::move(con));
+        std::cerr << "SQLException: " << e.what() << std::endl;
+        std::cerr << "MYSQL error code: " << e.getErrorCode() << std::endl;
+        std::cerr << "SQLState: " << e.getSQLState() << std::endl;
+        return false;
+    }
+}
+
+bool MySqlDao::CheckPwd(const std::string& email, const std::string& pwd, UserInfo& userInfo)
+{
+    auto con = _pool->GetConnection();
+    if (con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this,&con](){
+        _pool->ReturnConnection(std::move(con));
+    });
+    try 
+    {
+        //准备SQL语句
+        if (con->_con == nullptr)
+        {
+            std::cerr << "Connection is nullptr" << std::endl;
+            return false;
+        }
+        std::unique_ptr<sql::PreparedStatement> pstmt(con->_con->prepareStatement("SELECT * FROM user WHERE email = ?"));
+        pstmt->setString(1,email);
+
+        //执行查询
+        std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        std::string origin_pwd = "";
+        if (res->next())
+        {
+            origin_pwd = res->getString("pwd");
+            // 输出查询到的密码
+            std::cout << "Password: " << origin_pwd << std::endl;
+        }
+        if (pwd != origin_pwd)
+        {
+            return false;
+        }
+        userInfo.name = res->getString("name");
+        userInfo.email = email;
+        userInfo.pwd = origin_pwd;
+        userInfo.uid = res->getInt("uid");
+        return true;
+    }
+    catch (sql::SQLException& e)
+    {
         std::cerr << "SQLException: " << e.what() << std::endl;
         std::cerr << "MYSQL error code: " << e.getErrorCode() << std::endl;
         std::cerr << "SQLState: " << e.getSQLState() << std::endl;

@@ -80,6 +80,8 @@ set(SOURCE_FILES
     MySqlPool.cpp
     MySqlDao.cpp
     MysqlMgr.cpp
+    StatusGrpcClient.cpp
+    StatusConPool.cpp
 )
 
 # --- 4. 定义生成目标 ---

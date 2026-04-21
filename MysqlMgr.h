@@ -10,6 +10,7 @@ public:
     int RegUser(const std::string& name,const std::string& email,const std::string& pwd);
     bool CheckEmail(const std::string& email,const std::string& name);
     bool UpdatePwd(const std::string& email,const std::string& pwd);
+    bool CheckPwd(const std::string& email,const std::string& pwd,UserInfo& userInfo);
 private:
     MysqlMgr();
     MySqlDao _dao;

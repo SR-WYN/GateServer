@@ -6,7 +6,7 @@ HttpConnection::HttpConnection(boost::asio::io_context& ioc)
 {
 }
 
-void HttpConnection::Start()
+void HttpConnection::start()
 {
     auto self = shared_from_this();
     http::async_read(_socket, _buffer, _request,
@@ -20,8 +20,8 @@ void HttpConnection::Start()
                                  return;
                              }
                              boost::ignore_unused(bytes_transferred);
-                             self->HandleReq();
-                             self->CheckDeadline();
+                             self->handleReq();
+                             self->checkDeadline();
                          }
                          catch (std::exception& e)
                          {
@@ -30,7 +30,7 @@ void HttpConnection::Start()
                      });
 }
 
-void HttpConnection::PreParseGetParam()
+void HttpConnection::preParseGetParam()
 {
     // 提取 URI
     auto uri = _request.target();
@@ -53,8 +53,8 @@ void HttpConnection::PreParseGetParam()
         size_t eq_pos = pair.find('=');
         if (eq_pos != std::string::npos)
         {
-            key = utils::UrlDecode(pair.substr(0, eq_pos));
-            value = utils::UrlDecode(pair.substr(eq_pos + 1));
+            key = utils::urlDecode(pair.substr(0, eq_pos));
+            value = utils::urlDecode(pair.substr(eq_pos + 1));
             _get_params[key] = value;
         }
         query_string.erase(0, pos + 1);
@@ -65,56 +65,56 @@ void HttpConnection::PreParseGetParam()
         size_t eq_pos = query_string.find('=');
         if (eq_pos != std::string::npos)
         {
-            key = utils::UrlDecode(query_string.substr(0, eq_pos));
-            value = utils::UrlDecode(query_string.substr(eq_pos + 1));
+            key = utils::urlDecode(query_string.substr(0, eq_pos));
+            value = utils::urlDecode(query_string.substr(eq_pos + 1));
             _get_params[key] = value;
         }
     }
 }
 
-void HttpConnection::HandleReq()
+void HttpConnection::handleReq()
 {
     // 设置版本
     _response.version(_request.version());
     _response.keep_alive(false);
     if (_request.method() == http::verb::get)
     {
-        PreParseGetParam();
-        bool success = LogicSystem::GetInstance().HandleGet(_get_url, shared_from_this());
+        preParseGetParam();
+        bool success = LogicSystem::getInstance().handleGet(_get_url, shared_from_this());
         if (!success)
         {
             _response.result(http::status::not_found);
             _response.set(http::field::content_type, "test/plain");
             beast::ostream(_response.body()) << "url not found\r\n";
-            WriteResponse();
+            writeResponse();
             return;
         }
 
         _response.result(http::status::ok);
         _response.set(http::field::server, "GateServer");
-        WriteResponse();
+        writeResponse();
         return;
     }
     if (_request.method() == http::verb::post)
     {
-        bool success = LogicSystem::GetInstance().HandlePost(_request.target(), shared_from_this());
+        bool success = LogicSystem::getInstance().handlePost(_request.target(), shared_from_this());
         if (!success)
         {
             _response.result(http::status::not_found);
             _response.set(http::field::content_type, "test/plain");
             beast::ostream(_response.body()) << "url not found\r\n";
-            WriteResponse();
+            writeResponse();
             return;
         }
 
         _response.result(http::status::ok);
         _response.set(http::field::server, "GateServer");
-        WriteResponse();
+        writeResponse();
         return;
     }
 }
 
-void HttpConnection::WriteResponse()
+void HttpConnection::writeResponse()
 {
     auto self = shared_from_this();
     _response.content_length(_response.body().size());
@@ -126,7 +126,7 @@ void HttpConnection::WriteResponse()
                       });
 }
 
-void HttpConnection::CheckDeadline()
+void HttpConnection::checkDeadline()
 {
     auto self = shared_from_this();
     _deadline.async_wait(

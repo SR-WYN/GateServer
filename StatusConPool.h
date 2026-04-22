@@ -18,13 +18,13 @@ class StatusConPool
 public:
     StatusConPool(size_t poolSize, std::string host, std::string port);
     ~StatusConPool();
-    std::unique_ptr<StatusService::Stub> GetConnection();
-    void ReturnConnection(std::unique_ptr<StatusService::Stub> context);
-    void Close();
+    std::unique_ptr<StatusService::Stub> getConnection();
+    void returnConnection(std::unique_ptr<StatusService::Stub> context);
+    void close();
 
 private:
     std::atomic<bool> _b_stop;
-    size_t _poolSize;
+    size_t _pool_size;
     std::string _host;
     std::string _port;
     std::queue<std::unique_ptr<StatusService::Stub>> _connections;

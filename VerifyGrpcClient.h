@@ -22,7 +22,7 @@ class VerifyGrpcClient : public Singleton<VerifyGrpcClient>
     friend class Singleton<VerifyGrpcClient>;
 
 public:
-    GetVerifyRsp GetVerifyCode(std::string email);
+    GetVerifyRsp getVerifyCode(std::string email);
     ~VerifyGrpcClient() override;
 
 private:

@@ -6,7 +6,7 @@
 
 StatusGrpcClient::StatusGrpcClient()
 {
-    auto& gCfgMgr = ConfigMgr::GetInstance();
+    auto& gCfgMgr = ConfigMgr::getInstance();
     std::string host = gCfgMgr["StatusServer"]["Host"];
     std::string port = gCfgMgr["StatusServer"]["Port"];
     _pool.reset(new StatusConPool(5, host, port));
@@ -16,18 +16,18 @@ StatusGrpcClient::~StatusGrpcClient()
 {
 }
 
-GetChatServerRsp StatusGrpcClient::GetChatServer(int uid)
+GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
 {
     ClientContext context;
     GetChatServerRsp reply;
     GetChatServerReq request;
     request.set_uid(uid);
-    auto stub = _pool->GetConnection();
+    auto stub = _pool->getConnection();
     Status status = stub->GetChatServer(&context, request, &reply);
     utils::Defer defer(
         [&stub, this]()
         {
-            _pool->ReturnConnection(std::move(stub));
+            _pool->returnConnection(std::move(stub));
         });
     if (status.ok())
     {

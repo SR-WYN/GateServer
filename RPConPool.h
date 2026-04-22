@@ -21,14 +21,14 @@ class RPConPool
 public:
     RPConPool(size_t poolsize, std::string host, std::string port);
     ~RPConPool();
-    void Close();
+    void close();
 
-    std::unique_ptr<VerifyService::Stub> GetConnection();
-    void ReturnConnection(std::unique_ptr<VerifyService::Stub> context);
+    std::unique_ptr<VerifyService::Stub> getConnection();
+    void returnConnection(std::unique_ptr<VerifyService::Stub> context);
 
 private:
     std::atomic<bool> _b_stop;
-    size_t _poolSize;
+    size_t _pool_size;
     std::string _host;
     std::string _port;
     std::queue<std::unique_ptr<VerifyService::Stub>> _connections;

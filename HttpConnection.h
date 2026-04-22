@@ -9,16 +9,16 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 {
 public:
     HttpConnection(boost::asio::io_context& ioc);
-    void Start();
+    void start();
     tcp::socket& GetSocket();
     http::response<http::dynamic_body>& GetResponse();
     http::request<http::dynamic_body>& GetRequest();
     std::unordered_map<std::string,std::string>& GetParams();
 private:
-    void CheckDeadline();
-    void WriteResponse();
-    void HandleReq();
-    void PreParseGetParam();
+    void checkDeadline();
+    void writeResponse();
+    void handleReq();
+    void preParseGetParam();
     tcp::socket _socket;
     beast::flat_buffer _buffer{8192};
     http::request<http::dynamic_body> _request;

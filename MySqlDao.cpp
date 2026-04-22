@@ -8,7 +8,7 @@
 
 MySqlDao::MySqlDao()
 {
-    auto& cfg = ConfigMgr::GetInstance();
+    auto& cfg = ConfigMgr::getInstance();
     const auto& host = cfg["MySql"]["Host"];
     const auto& port = cfg["MySql"]["Port"];
     const auto& user = cfg["MySql"]["User"];
@@ -19,12 +19,12 @@ MySqlDao::MySqlDao()
 
 MySqlDao::~MySqlDao()
 {
-    _pool->Close();
+    _pool->close();
 }
 
-int MySqlDao::RegUser(const std::string& name, const std::string& email, const std::string& pwd)
+int MySqlDao::regUser(const std::string& name, const std::string& email, const std::string& pwd)
 {
-    auto con = _pool->GetConnection();
+    auto con = _pool->getConnection();
     try
     {
         if (con == nullptr)
@@ -46,15 +46,15 @@ int MySqlDao::RegUser(const std::string& name, const std::string& email, const s
         {
             int result = res->getInt("result");
             std::cout << "Result: " << result << std::endl;
-            _pool->ReturnConnection(std::move(con));
+            _pool->returnConnection(std::move(con));
             return result;
         }
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
         return -1;
     }
     catch (sql::SQLException& e)
     {
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
         std::cerr << "SQLException: " << e.what() << std::endl;
         std::cerr << "MYSQL error code: " << e.getErrorCode() << std::endl;
         std::cerr << "SQLState: " << e.getSQLState() << std::endl;
@@ -62,9 +62,9 @@ int MySqlDao::RegUser(const std::string& name, const std::string& email, const s
     }
 }
 
-bool MySqlDao::CheckEmail(const std::string& email, const std::string& name)
+bool MySqlDao::checkEmail(const std::string& email, const std::string& name)
 {
-    auto con = _pool->GetConnection();
+    auto con = _pool->getConnection();
     try
     {
         if (con == nullptr)
@@ -84,16 +84,16 @@ bool MySqlDao::CheckEmail(const std::string& email, const std::string& name)
             std::cout << "Check name: " << res->getString("name") << std::endl;
             if (name == res->getString("name"))
             {
-                _pool->ReturnConnection(std::move(con));
+                _pool->returnConnection(std::move(con));
                 return true;
             }
         }
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
         return false;
     }
     catch (sql::SQLException& e)
     {
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
         std::cerr << "SQLException: " << e.what() << std::endl;
         std::cerr << "MYSQL error code: " << e.getErrorCode() << std::endl;
         std::cerr << "SQLState: " << e.getSQLState() << std::endl;
@@ -101,9 +101,9 @@ bool MySqlDao::CheckEmail(const std::string& email, const std::string& name)
     }
 }
 
-bool MySqlDao::UpdatePwd(const std::string& email, const std::string& pwd)
+bool MySqlDao::updatePwd(const std::string& email, const std::string& pwd)
 {
-    auto con = _pool->GetConnection();
+    auto con = _pool->getConnection();
     try
     {
         if (con == nullptr)
@@ -120,12 +120,12 @@ bool MySqlDao::UpdatePwd(const std::string& email, const std::string& pwd)
         int updateCount = pstmt->executeUpdate();
 
         std::cout << "Updated rows: " << updateCount << std::endl;
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
         return updateCount > 0;
     }
     catch (sql::SQLException& e)
     {
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
         std::cerr << "SQLException: " << e.what() << std::endl;
         std::cerr << "MYSQL error code: " << e.getErrorCode() << std::endl;
         std::cerr << "SQLState: " << e.getSQLState() << std::endl;
@@ -133,15 +133,15 @@ bool MySqlDao::UpdatePwd(const std::string& email, const std::string& pwd)
     }
 }
 
-bool MySqlDao::CheckPwd(const std::string& email, const std::string& pwd, UserInfo& userInfo)
+bool MySqlDao::checkPwd(const std::string& email, const std::string& pwd, UserInfo& userInfo)
 {
-    auto con = _pool->GetConnection();
+    auto con = _pool->getConnection();
     if (con == nullptr)
     {
         return false;
     }
     utils::Defer defer([this,&con](){
-        _pool->ReturnConnection(std::move(con));
+        _pool->returnConnection(std::move(con));
     });
     try 
     {

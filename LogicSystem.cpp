@@ -11,19 +11,19 @@ LogicSystem::~LogicSystem()
 {
 }
 
-void LogicSystem::RegGet(std::string url, HttpHandler handler)
+void LogicSystem::regGet(std::string url, HttpHandler handler)
 {
     _get_handlers.insert(make_pair(url, handler));
 }
 
-void LogicSystem::RegPost(std::string url, HttpHandler handler)
+void LogicSystem::regPost(std::string url, HttpHandler handler)
 {
     _post_handlers.insert(make_pair(url, handler));
 }
 
 LogicSystem::LogicSystem()
 {
-    RegGet("/get_test",
+    regGet("/get_test",
            [](std::shared_ptr<HttpConnection> connection)
            {
                beast::ostream(connection->GetResponse().body()) << "recvive get_test req";
@@ -37,7 +37,7 @@ LogicSystem::LogicSystem()
                        << "param " << i << " value is " << elem.second << std::endl;
                }
            });
-    RegPost("/get_verify_code",
+    regPost("/get_verify_code",
             [](std::shared_ptr<HttpConnection> connection) -> bool
             {
                 auto body_str =
@@ -57,7 +57,7 @@ LogicSystem::LogicSystem()
                     return true;
                 }
                 auto email = src_root["email"].asString();
-                GetVerifyRsp rsp = VerifyGrpcClient::GetInstance().GetVerifyCode(email);
+                GetVerifyRsp rsp = VerifyGrpcClient::getInstance().getVerifyCode(email);
                 std::cout << "email is " << email << std::endl;
                 root["error"] = rsp.error();
                 root["email"] = src_root["email"];
@@ -65,7 +65,7 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return true;
             });
-    RegPost(
+    regPost(
         "/user_register",
         [](std::shared_ptr<HttpConnection> connection)
         {
@@ -86,7 +86,7 @@ LogicSystem::LogicSystem()
             }
             std::string redis_key = std::string(RedisPrefix::CODE) + src_root["email"].asString();
             std::string verify_code;
-            bool b_get_verify = RedisMgr::GetInstance().Get(redis_key, verify_code);
+            bool b_get_verify = RedisMgr::getInstance().get(redis_key, verify_code);
             if (!b_get_verify)
             {
                 std::cout << "get verify code expired" << std::endl;
@@ -103,7 +103,7 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return true;
             }
-            bool b_user_exist = RedisMgr::GetInstance().ExistsKey(src_root["user"].asString());
+            bool b_user_exist = RedisMgr::getInstance().existsKey(src_root["user"].asString());
             if (b_user_exist)
             {
                 std::cout << "user exist" << std::endl;
@@ -125,7 +125,7 @@ LogicSystem::LogicSystem()
 
             auto name = src_root["user"].asString();
             auto email = src_root["email"].asString();
-            int uid = MysqlMgr::GetInstance().RegUser(name, email, passwd);
+            int uid = MysqlMgr::getInstance().regUser(name, email, passwd);
             if (uid == 0 || uid == -1)
             {
                 std::cout << "user or email exist" << std::endl;
@@ -144,7 +144,7 @@ LogicSystem::LogicSystem()
             beast::ostream(connection->GetResponse().body()) << jsonstr;
             return true;
         });
-    RegPost("/reset_pwd",
+    regPost("/reset_pwd",
             [](std::shared_ptr<HttpConnection> connection)
             {
                 auto body_str =
@@ -170,7 +170,7 @@ LogicSystem::LogicSystem()
 
                 // 先查找redis中email对应的验证码是否合理
                 std::string verify_code;
-                bool b_get_verify = RedisMgr::GetInstance().Get(
+                bool b_get_verify = RedisMgr::getInstance().get(
                     std::string(RedisPrefix::CODE) + email, verify_code);
                 if (!b_get_verify)
                 {
@@ -190,7 +190,7 @@ LogicSystem::LogicSystem()
                 }
 
                 // 查询数据库判断用户名和邮箱是否匹配
-                bool email_vaild = MysqlMgr::GetInstance().CheckEmail(email, name);
+                bool email_vaild = MysqlMgr::getInstance().checkEmail(email, name);
                 if (!email_vaild)
                 {
                     std::cout << "email or user not exist" << std::endl;
@@ -201,7 +201,7 @@ LogicSystem::LogicSystem()
                 }
 
                 // 更新数据库密码
-                bool b_up = MysqlMgr::GetInstance().UpdatePwd(email, pwd);
+                bool b_up = MysqlMgr::getInstance().updatePwd(email, pwd);
                 if (!b_up)
                 {
                     std::cout << "update pwd failed" << std::endl;
@@ -220,7 +220,7 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return true;
             });
-    RegPost("/user_login",
+    regPost("/user_login",
             [](std::shared_ptr<HttpConnection> connection)
             {
                 auto body_str =
@@ -244,7 +244,7 @@ LogicSystem::LogicSystem()
                 auto pwd = src_root["passwd"].asString();
                 UserInfo userInfo;
                 // 查询数据库判断邮箱和密码是否匹配
-                bool pwd_vaild = MysqlMgr::GetInstance().CheckPwd(email, pwd, userInfo);
+                bool pwd_vaild = MysqlMgr::getInstance().checkPwd(email, pwd, userInfo);
                 if (!pwd_vaild)
                 {
                     std::cout << "email pwd not match " << std::endl;
@@ -254,7 +254,7 @@ LogicSystem::LogicSystem()
                     return true;
                 }
 
-                auto reply = StatusGrpcClient::GetInstance().GetChatServer(userInfo.uid);
+                auto reply = StatusGrpcClient::getInstance().getChatServer(userInfo.uid);
                 if (reply.error())
                 {
                     std::cout << " grpc get char server failed, error is " << reply.error()
@@ -278,7 +278,7 @@ LogicSystem::LogicSystem()
             });
 }
 
-bool LogicSystem::HandleGet(std::string path, std::shared_ptr<HttpConnection> con)
+bool LogicSystem::handleGet(std::string path, std::shared_ptr<HttpConnection> con)
 {
     if (_get_handlers.find(path) == _get_handlers.end())
     {
@@ -288,7 +288,7 @@ bool LogicSystem::HandleGet(std::string path, std::shared_ptr<HttpConnection> co
     return true;
 }
 
-bool LogicSystem::HandlePost(std::string path, std::shared_ptr<HttpConnection> con)
+bool LogicSystem::handlePost(std::string path, std::shared_ptr<HttpConnection> con)
 {
     if (_post_handlers.find(path) == _post_handlers.end())
     {

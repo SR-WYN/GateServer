@@ -17,7 +17,7 @@ class StatusGrpcClient : public Singleton<StatusGrpcClient>
     friend class Singleton<StatusGrpcClient>;
 public:
     ~StatusGrpcClient() override;
-    GetChatServerRsp GetChatServer(int uid);
+    GetChatServerRsp getChatServer(int uid);
 private:
     StatusGrpcClient();
     std::unique_ptr<StatusConPool> _pool;

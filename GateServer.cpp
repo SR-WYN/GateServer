@@ -10,19 +10,19 @@
 #include <cassert>
 #include "RedisMgr.h"
 
-void TestRedis();
+void testRedis();
 void init();
-void TestRedisMgr();
+void testRedisMgr();
 
 int main()
 {
     try
     {
         init();
-        // TestRedisMgr();
-        // TestRedis();
+        // testRedisMgr();
+        // testRedis();
         {
-            auto& config = ConfigMgr::GetInstance();
+            auto& config = ConfigMgr::getInstance();
             std::string gate_port_str = config["GateServer"]["Port"];
             unsigned short gate_port = static_cast<unsigned short>(std::stoi(gate_port_str));
             net::io_context ioc{1};
@@ -36,7 +36,7 @@ int main()
                     }
                     ioc.stop();
                 });
-            std::make_shared<CServer>(ioc, gate_port)->Start();
+            std::make_shared<CServer>(ioc, gate_port)->start();
             std::cout << "Gate Server listen on port: " << gate_port << std::endl;
             ioc.run();
         }
@@ -50,13 +50,13 @@ int main()
 
 void init()
 {
-    ConfigMgr::GetInstance();
-    LogicSystem::GetInstance();
+    ConfigMgr::getInstance();
+    LogicSystem::getInstance();
 
     std::cout << "Gate Server init done" << std::endl;
 }
 
-void TestRedis()
+void testRedis()
 {
     // 连接redis 需要启动才可以进行连接
     redisContext* c = redisConnect("127.0.0.1", 6379);
@@ -143,25 +143,25 @@ void TestRedis()
     redisFree(c);
 }
 
-void TestRedisMgr() {
-    assert(RedisMgr::GetInstance().Connect("127.0.0.1", 6379));
-    assert(RedisMgr::GetInstance().Auth("123456"));
-    assert(RedisMgr::GetInstance().Set("blogwebsite","llfc.club"));
+void testRedisMgr() {
+    assert(RedisMgr::getInstance().connect("127.0.0.1", 6379));
+    assert(RedisMgr::getInstance().auth("123456"));
+    assert(RedisMgr::getInstance().set("blogwebsite","llfc.club"));
     std::string value="";
-    assert(RedisMgr::GetInstance().Get("blogwebsite", value) );
-    assert(RedisMgr::GetInstance().Get("nonekey", value) == false);
-    assert(RedisMgr::GetInstance().HSet("bloginfo","blogwebsite", "llfc.club"));
-    assert(RedisMgr::GetInstance().HGet("bloginfo","blogwebsite") != "");
-    assert(RedisMgr::GetInstance().ExistsKey("bloginfo"));
-    assert(RedisMgr::GetInstance().Del("bloginfo"));
-    assert(RedisMgr::GetInstance().Del("bloginfo"));
-    assert(RedisMgr::GetInstance().ExistsKey("bloginfo") == false);
-    assert(RedisMgr::GetInstance().LPush("lpushkey1", "lpushvalue1"));
-    assert(RedisMgr::GetInstance().LPush("lpushkey1", "lpushvalue2"));
-    assert(RedisMgr::GetInstance().LPush("lpushkey1", "lpushvalue3"));
-    assert(RedisMgr::GetInstance().RPop("lpushkey1", value));
-    assert(RedisMgr::GetInstance().RPop("lpushkey1", value));
-    assert(RedisMgr::GetInstance().LPop("lpushkey1", value));
-    assert(RedisMgr::GetInstance().LPop("lpushkey2", value)==false);
-    RedisMgr::GetInstance().Close();
+    assert(RedisMgr::getInstance().get("blogwebsite", value) );
+    assert(RedisMgr::getInstance().get("nonekey", value) == false);
+    assert(RedisMgr::getInstance().hSet("bloginfo","blogwebsite", "llfc.club"));
+    assert(RedisMgr::getInstance().hGet("bloginfo","blogwebsite") != "");
+    assert(RedisMgr::getInstance().existsKey("bloginfo"));
+    assert(RedisMgr::getInstance().del("bloginfo"));
+    assert(RedisMgr::getInstance().del("bloginfo"));
+    assert(RedisMgr::getInstance().existsKey("bloginfo") == false);
+    assert(RedisMgr::getInstance().lPush("lpushkey1", "lpushvalue1"));
+    assert(RedisMgr::getInstance().lPush("lpushkey1", "lpushvalue2"));
+    assert(RedisMgr::getInstance().lPush("lpushkey1", "lpushvalue3"));
+    assert(RedisMgr::getInstance().rPop("lpushkey1", value));
+    assert(RedisMgr::getInstance().rPop("lpushkey1", value));
+    assert(RedisMgr::getInstance().lPop("lpushkey1", value));
+    assert(RedisMgr::getInstance().lPop("lpushkey2", value)==false);
+    RedisMgr::getInstance().close();
 }

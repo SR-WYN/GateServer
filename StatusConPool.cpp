@@ -4,7 +4,7 @@
 #include <memory>
 
 StatusConPool::StatusConPool(size_t poolSize, std::string host, std::string port)
-    : _poolSize(poolSize),
+    : _pool_size(poolSize),
       _host(host),
       _port(port),
       _b_stop(false)
@@ -20,14 +20,14 @@ StatusConPool::StatusConPool(size_t poolSize, std::string host, std::string port
 StatusConPool::~StatusConPool()
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    Close();
+    close();
     while (!_connections.empty())
     {
         _connections.pop();
     }
 }
 
-std::unique_ptr<StatusService::Stub> StatusConPool::GetConnection()
+std::unique_ptr<StatusService::Stub> StatusConPool::getConnection()
 {
     std::unique_lock<std::mutex> lock(_mutex);
     _cond.wait(lock,[this]{
@@ -46,7 +46,7 @@ std::unique_ptr<StatusService::Stub> StatusConPool::GetConnection()
     return context;
 }
 
-void StatusConPool::ReturnConnection(std::unique_ptr<StatusService::Stub> context)
+void StatusConPool::returnConnection(std::unique_ptr<StatusService::Stub> context)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     if (_b_stop)
@@ -57,7 +57,7 @@ void StatusConPool::ReturnConnection(std::unique_ptr<StatusService::Stub> contex
     _cond.notify_one();
 }
 
-void StatusConPool::Close()
+void StatusConPool::close()
 {
     _b_stop = true;
     _cond.notify_all();

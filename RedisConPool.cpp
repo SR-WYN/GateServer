@@ -1,20 +1,14 @@
 #include "RedisConPool.h"
 #include <exception>
-#include <hiredis/hiredis.h>
 #include <hiredis/read.h>
 
-RedisConPool::RedisConPool(size_t poolSize, const char* host, int port, const char* pwd)
-    : _pool_size(poolSize),
-      _host(host),
-      _port(port),
-      _b_stop(false),
-      _pwd(pwd),
-      _counter(0),
+RedisConPool::RedisConPool(size_t poolSize, const char *host, int port, const char *pwd)
+    : _pool_size(poolSize), _host(host), _port(port), _b_stop(false), _pwd(pwd), _counter(0),
       _fail_count(0)
 {
     for (size_t i = 0; i < _pool_size; ++i)
     {
-        auto* context = redisConnect(host, port);
+        auto *context = redisConnect(host, port);
         if (context == nullptr || context->err != 0)
         {
             if (context != nullptr)
@@ -24,7 +18,7 @@ RedisConPool::RedisConPool(size_t poolSize, const char* host, int port, const ch
             continue;
         }
 
-        auto reply = (redisReply*)redisCommand(context, "AUTH %s", pwd);
+        auto reply = (redisReply *)redisCommand(context, "AUTH %s", pwd);
         if (reply == nullptr || reply->type == REDIS_REPLY_ERROR)
         {
             std::cout << reply->str << std::endl;
@@ -40,22 +34,19 @@ RedisConPool::RedisConPool(size_t poolSize, const char* host, int port, const ch
         _connections.push(context);
     }
 
-    _check_thread = std::thread(
-        [this]()
+    _check_thread = std::thread([this]() {
+        while (!_b_stop)
         {
-            while (!_b_stop)
+            _counter++;
+            if (_counter >= 60)
             {
-                _counter++;
-                if (_counter >= 60)
-                {
-                    checkThreadPro();
-                    _counter = 0;
-                }
-
-                std::this_thread::sleep_for(
-                    std::chrono::seconds(1)); // 每隔 30 秒发送一次 PING 命令
+                checkThreadPro();
+                _counter = 0;
             }
-        });
+
+            std::this_thread::sleep_for(std::chrono::seconds(1)); // 每隔 30 秒发送一次 PING 命令
+        }
+    });
 }
 
 RedisConPool::~RedisConPool()
@@ -69,34 +60,32 @@ void RedisConPool::clearConnections()
     std::lock_guard<std::mutex> lock(_mutex);
     while (!_connections.empty())
     {
-        auto* context = _connections.front();
+        auto *context = _connections.front();
         redisFree(context);
         _connections.pop();
     }
 }
 
-redisContext* RedisConPool::getConnection()
+redisContext *RedisConPool::getConnection()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock,
-               [this]
-               {
-                   if (_b_stop)
-                   {
-                       return true;
-                   }
-                   return !_connections.empty();
-               });
+    _cond.wait(lock, [this] {
+        if (_b_stop)
+        {
+            return true;
+        }
+        return !_connections.empty();
+    });
     if (_b_stop)
     {
         return nullptr;
     }
-    auto* context = _connections.front();
+    auto *context = _connections.front();
     _connections.pop();
     return context;
 }
 
-redisContext* RedisConPool::getConNonBlock()
+redisContext *RedisConPool::getConNonBlock()
 {
     std::unique_lock<std::mutex> lock(_mutex);
     if (_b_stop)
@@ -107,12 +96,12 @@ redisContext* RedisConPool::getConNonBlock()
     {
         return nullptr;
     }
-    auto* context = _connections.front();
+    auto *context = _connections.front();
     _connections.pop();
     return context;
 }
 
-void RedisConPool::returnConnection(redisContext* context)
+void RedisConPool::returnConnection(redisContext *context)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     if (_b_stop)
@@ -127,7 +116,8 @@ void RedisConPool::close()
 {
     _b_stop = true;
     _cond.notify_all();
-    if (_check_thread.joinable()) {
+    if (_check_thread.joinable())
+    {
         _check_thread.join();
     }
 }
@@ -143,7 +133,7 @@ bool RedisConPool::reconnect()
         }
         return false;
     }
-    auto reply = (redisReply*)redisCommand(context, "AUTH %s", _pwd.c_str());
+    auto reply = (redisReply *)redisCommand(context, "AUTH %s", _pwd.c_str());
     if (reply == nullptr || reply->type == REDIS_REPLY_ERROR)
     {
         std::cout << "认证失败" << std::endl;
@@ -173,12 +163,12 @@ void RedisConPool::checkThreadPro()
     }
     for (int i = 0; i < poolSize && !_b_stop; i++)
     {
-        auto* context = getConNonBlock();
+        auto *context = getConNonBlock();
         if (context == nullptr)
         {
             break;
         }
-        auto reply = (redisReply*)redisCommand(context, "PING");
+        auto reply = (redisReply *)redisCommand(context, "PING");
         if (context->err)
         {
             std::cout << "Connection error: " << context->err << std::endl;
@@ -216,4 +206,3 @@ void RedisConPool::checkThreadPro()
         }
     }
 }
-

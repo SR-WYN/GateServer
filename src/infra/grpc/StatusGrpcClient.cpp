@@ -1,7 +1,7 @@
-#include "StatusGrpcClient.h"
 #include "ConfigMgr.h"
 #include "StatusConPool.h"
-#include "const.h"
+#include "StatusGrpcClient.h"
+#include "error_codes.h"
 #include "utils.h"
 
 StatusGrpcClient::StatusGrpcClient()

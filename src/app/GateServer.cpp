@@ -1,14 +1,16 @@
 #include "CServer.h"
 #include "ConfigMgr.h"
 #include "LogicSystem.h"
+#include "RedisMgr.h"
+#include "http_types.h"
+
+#include <cassert>
 #include <cstdlib>
 #include <hiredis/hiredis.h>
 #include <iostream>
 #include <json/json.h>
 #include <json/reader.h>
 #include <json/value.h>
-#include <cassert>
-#include "RedisMgr.h"
 
 void testRedis();
 void init();
@@ -143,15 +145,16 @@ void testRedis()
     redisFree(c);
 }
 
-void testRedisMgr() {
+void testRedisMgr()
+{
     assert(RedisMgr::getInstance().connect("127.0.0.1", 6379));
     assert(RedisMgr::getInstance().auth("123456"));
-    assert(RedisMgr::getInstance().set("blogwebsite","llfc.club"));
-    std::string value="";
-    assert(RedisMgr::getInstance().get("blogwebsite", value) );
+    assert(RedisMgr::getInstance().set("blogwebsite", "llfc.club"));
+    std::string value = "";
+    assert(RedisMgr::getInstance().get("blogwebsite", value));
     assert(RedisMgr::getInstance().get("nonekey", value) == false);
-    assert(RedisMgr::getInstance().hSet("bloginfo","blogwebsite", "llfc.club"));
-    assert(RedisMgr::getInstance().hGet("bloginfo","blogwebsite") != "");
+    assert(RedisMgr::getInstance().hSet("bloginfo", "blogwebsite", "llfc.club"));
+    assert(RedisMgr::getInstance().hGet("bloginfo", "blogwebsite") != "");
     assert(RedisMgr::getInstance().existsKey("bloginfo"));
     assert(RedisMgr::getInstance().del("bloginfo"));
     assert(RedisMgr::getInstance().del("bloginfo"));
@@ -162,6 +165,6 @@ void testRedisMgr() {
     assert(RedisMgr::getInstance().rPop("lpushkey1", value));
     assert(RedisMgr::getInstance().rPop("lpushkey1", value));
     assert(RedisMgr::getInstance().lPop("lpushkey1", value));
-    assert(RedisMgr::getInstance().lPop("lpushkey2", value)==false);
+    assert(RedisMgr::getInstance().lPop("lpushkey2", value) == false);
     RedisMgr::getInstance().close();
 }

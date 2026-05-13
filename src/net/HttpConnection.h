@@ -1,6 +1,6 @@
 #pragma once
 
-#include "const.h"
+#include "http_types.h"
 #include <boost/beast/http/dynamic_body.hpp>
 #include <string>
 #include <unordered_map>

@@ -1,0 +1,1 @@
+Moved from GateServer/VerifyServer. Node.js gRPC email verification service; run with npm start after configuring config.json.

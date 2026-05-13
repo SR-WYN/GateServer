@@ -1,6 +1,5 @@
 #pragma once
 
-#include "const.h"
 #include "message.grpc.pb.h"
 #include "message.pb.h"
 #include <grpcpp/grpcpp.h>

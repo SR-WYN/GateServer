@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Singleton.h"
-#include "const.h"
 #include "message.grpc.pb.h"
 #include "message.pb.h"
 #include <grpcpp/grpcpp.h>

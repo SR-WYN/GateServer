@@ -1,0 +1,2 @@
+add_library(gs_domain INTERFACE)
+target_link_libraries(gs_domain INTERFACE gateserver_includes)

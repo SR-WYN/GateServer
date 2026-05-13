@@ -1,0 +1,2 @@
+add_library(gs_redis STATIC RedisMgr.cpp RedisConPool.cpp)
+target_link_libraries(gs_redis PUBLIC gateserver_includes gs_config hiredis)

@@ -1,6 +1,6 @@
-#include "RedisMgr.h"
 #include "ConfigMgr.h"
 #include "RedisConPool.h"
+#include "RedisMgr.h"
 #include <string.h>
 
 RedisMgr::RedisMgr()

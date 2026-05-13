@@ -1,6 +1,11 @@
 #pragma once
+
 #include "Singleton.h"
-#include "const.h"
+
+#include <functional>
+#include <map>
+#include <memory>
+#include <string>
 
 class HttpConnection;
 typedef std::function<void(std::shared_ptr<HttpConnection>)> HttpHandler;
@@ -11,10 +16,10 @@ class LogicSystem : public Singleton<LogicSystem>
 
 public:
     ~LogicSystem();
-    bool handleGet(std::string,std::shared_ptr<HttpConnection>);
-    void regGet(std::string,HttpHandler);
-    void regPost(std::string,HttpHandler);
-    bool handlePost(std::string,std::shared_ptr<HttpConnection>);
+    bool handleGet(std::string, std::shared_ptr<HttpConnection>);
+    void regGet(std::string, HttpHandler);
+    void regPost(std::string, HttpHandler);
+    bool handlePost(std::string, std::shared_ptr<HttpConnection>);
 
 private:
     LogicSystem();

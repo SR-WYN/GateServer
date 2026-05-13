@@ -1,6 +1,6 @@
 #pragma once
-#include "Singleton.h"
 #include "MySqlDao.h"
+#include "Singleton.h"
 
 class MysqlMgr : public Singleton<MysqlMgr>
 {

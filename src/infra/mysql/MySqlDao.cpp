@@ -71,7 +71,6 @@ int MySqlDao::regUser(const std::string &name, const std::string &email, const s
         if (!idRes->next())
         {
             conn.rollback();
-            std::cerr << "user_id table is empty" << std::endl;
             return false;
         }
         const int new_uid = idRes->getInt("id");
@@ -90,7 +89,6 @@ int MySqlDao::regUser(const std::string &name, const std::string &email, const s
         insert->executeUpdate();
         conn.commit();
         uid = new_uid;
-        std::cout << "registered user uid=" << uid << " name=" << name << std::endl;
         return true;
     });
     return uid;

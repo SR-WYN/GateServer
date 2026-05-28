@@ -12,7 +12,6 @@ VerifyGrpcClient::VerifyGrpcClient()
     auto& gCfgMgr = ConfigMgr::getInstance();
     std::string host = gCfgMgr["VerifyServer"]["Host"];
     std::string port = gCfgMgr["VerifyServer"]["Port"];
-    std::cout << "VerifyServer host is " << host << " port is " << port << std::endl;
     _pool.reset(new RPConPool(5,host,port));
 }
 
@@ -31,15 +30,12 @@ GetVerifyRsp VerifyGrpcClient::getVerifyCode(std::string email)
     if (status.ok())
     {
         _pool->returnConnection(std::move(stub));
-        std::cout << "GetVerifyCode success" << std::endl;
         return reply;
     }
     else
     {
         _pool->returnConnection(std::move(stub));
         reply.set_error(ErrorCodes::RPCFAILED);
-        std::cout << "error is " << status.error_code() << " " << status.error_message()
-                  << std::endl;
         return reply;
     }
 }

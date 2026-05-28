@@ -50,7 +50,6 @@ LogicSystem::LogicSystem()
             {
                 auto body_str =
                     boost::beast::buffers_to_string(connection->GetRequest().body().data());
-                std::cout << "recvive body is " << body_str << std::endl;
                 connection->GetResponse().set(http::field::content_type, "text/json");
                 Json::Value root;
                 Json::Reader reader;
@@ -58,7 +57,6 @@ LogicSystem::LogicSystem()
                 bool parse_success = reader.parse(body_str, src_root);
                 if (!parse_success || !src_root.isMember("email"))
                 {
-                    std::cout << "Failed to parse Json data" << std::endl;
                     root["error"] = ErrorCodes::ERROR_JSON;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -66,7 +64,6 @@ LogicSystem::LogicSystem()
                 }
                 auto email = src_root["email"].asString();
                 GetVerifyRsp rsp = VerifyGrpcClient::getInstance().getVerifyCode(email);
-                std::cout << "email is " << email << std::endl;
                 root["error"] = rsp.error();
                 root["email"] = src_root["email"];
                 std::string jsonstr = root.toStyledString();
@@ -78,7 +75,6 @@ LogicSystem::LogicSystem()
         {
             auto body_str =
                 boost::beast::buffers_to_string(connection->GetRequest().body().data());
-            std::cout << "receive body is " << body_str << std::endl;
             connection->GetResponse().set(http::field::content_type, "text/json");
             Json::Value root;
             Json::Reader reader;
@@ -86,7 +82,6 @@ LogicSystem::LogicSystem()
             bool parse_success = reader.parse(body_str, src_root);
             if (!parse_success || !src_root.isMember("email") || !src_root.isMember("verify_code"))
             {
-                std::cout << "Failed to parse JSON data or missing fields! " << std::endl;
                 root["error"] = ErrorCodes::ERROR_JSON;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -97,7 +92,6 @@ LogicSystem::LogicSystem()
             bool b_get_verify = RedisMgr::getInstance().get(redis_key, verify_code);
             if (!b_get_verify)
             {
-                std::cout << "get verify code expired" << std::endl;
                 root["error"] = ErrorCodes::VERIFY_EXPIRED;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -105,7 +99,6 @@ LogicSystem::LogicSystem()
             }
             if (verify_code != src_root["verify_code"].asString())
             {
-                std::cout << "verify code error" << std::endl;
                 root["error"] = ErrorCodes::VERIFY_CODE_ERROR;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -116,7 +109,6 @@ LogicSystem::LogicSystem()
 
             if (RedisMgr::getInstance().existsKey(name))
             {
-                std::cout << "user exist in redis" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -124,7 +116,6 @@ LogicSystem::LogicSystem()
             }
             if (MysqlMgr::getInstance().dao().userNameExists(name))
             {
-                std::cout << "user exist in mysql" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -132,7 +123,6 @@ LogicSystem::LogicSystem()
             }
             if (MysqlMgr::getInstance().dao().emailExists(email))
             {
-                std::cout << "email exist in mysql" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -143,7 +133,6 @@ LogicSystem::LogicSystem()
             auto confirm = src_root["confirm"].asString();
             if (passwd != confirm)
             {
-                std::cout << "passwd not match" << std::endl;
                 root["error"] = ErrorCodes::PASSWD_NOT_MATCH;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -153,7 +142,6 @@ LogicSystem::LogicSystem()
             int uid = MysqlMgr::getInstance().dao().regUser(name, email, passwd);
             if (uid == 0)
             {
-                std::cout << "user or email exist" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -161,7 +149,6 @@ LogicSystem::LogicSystem()
             }
             if (uid < 0)
             {
-                std::cout << "register database error" << std::endl;
                 root["error"] = ErrorCodes::RPCFAILED;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -183,7 +170,6 @@ LogicSystem::LogicSystem()
             {
                 auto body_str =
                     boost::beast::buffers_to_string(connection->GetRequest().body().data());
-                std::cout << "recvive body is " << body_str << std::endl;
                 connection->GetResponse().set(http::field::content_type, "text/json");
                 Json::Value root;
                 Json::Reader reader;
@@ -191,7 +177,6 @@ LogicSystem::LogicSystem()
                 bool parse_success = reader.parse(body_str, src_root);
                 if (!parse_success)
                 {
-                    std::cout << "Failed to parse JSON data!" << std::endl;
                     root["error"] = ErrorCodes::ERROR_JSON;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -207,7 +192,6 @@ LogicSystem::LogicSystem()
                     std::string(RedisPrefix::CODE) + email, verify_code);
                 if (!b_get_verify)
                 {
-                    std::cout << "get verify code expired" << std::endl;
                     root["error"] = ErrorCodes::VERIFY_EXPIRED;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -215,7 +199,6 @@ LogicSystem::LogicSystem()
                 }
                 if (verify_code != src_root["verify_code"].asString())
                 {
-                    std::cout << "verify code error" << std::endl;
                     root["error"] = ErrorCodes::VERIFY_CODE_ERROR;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -225,7 +208,6 @@ LogicSystem::LogicSystem()
                 bool email_vaild = MysqlMgr::getInstance().dao().checkEmail(email, name);
                 if (!email_vaild)
                 {
-                    std::cout << "email or user not exist" << std::endl;
                     root["error"] = ErrorCodes::EMAIL_NOT_MATCH;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -235,14 +217,12 @@ LogicSystem::LogicSystem()
                 bool b_up = MysqlMgr::getInstance().dao().updatePwd(email, pwd);
                 if (!b_up)
                 {
-                    std::cout << "update pwd failed" << std::endl;
                     root["error"] = ErrorCodes::PASSWD_UP_FAILED;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
                     return;
                 }
 
-                std::cout << "succeed to update password" << pwd << std::endl;
                 root["error"] = ErrorCodes::SUCCESS;
                 root["email"] = email;
                 root["user"] = name;
@@ -255,7 +235,6 @@ LogicSystem::LogicSystem()
             {
                 auto body_str =
                     boost::beast::buffers_to_string(connection->GetRequest().body().data());
-                std::cout << "receive body is " << body_str << std::endl;
                 connection->GetResponse().set(http::field::content_type, "text/json");
                 Json::Value root;
                 Json::Reader reader;
@@ -263,7 +242,6 @@ LogicSystem::LogicSystem()
                 bool parse_success = reader.parse(body_str, src_root);
                 if (!parse_success)
                 {
-                    std::cout << "Failed to parse JSON data! " << std::endl;
                     root["error"] = ErrorCodes::ERROR_JSON;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -276,7 +254,6 @@ LogicSystem::LogicSystem()
                 bool pwd_vaild = MysqlMgr::getInstance().dao().checkPwd(email, pwd, userInfo);
                 if (!pwd_vaild)
                 {
-                    std::cout << "email pwd not match " << std::endl;
                     root["error"] = ErrorCodes::PASSWD_NOT_MATCH;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
@@ -286,15 +263,12 @@ LogicSystem::LogicSystem()
                 auto reply = StatusGrpcClient::getInstance().getChatServer(userInfo.uid);
                 if (reply.error())
                 {
-                    std::cout << " grpc get char server failed, error is " << reply.error()
-                              << std::endl;
                     root["error"] = ErrorCodes::RPCFAILED;
                     std::string jsonstr = root.toStyledString();
                     beast::ostream(connection->GetResponse().body()) << jsonstr;
                     return;
                 }
 
-                std::cout << "succeed to load userinfo uid is " << userInfo.uid << std::endl;
                 root["error"] = 0;
                 root["email"] = email;
                 root["uid"] = userInfo.uid;

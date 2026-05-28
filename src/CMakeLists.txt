@@ -50,6 +50,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     protobuf::libprotobuf
     hiredis
     mysqlcppconn
+    spdlog::spdlog
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

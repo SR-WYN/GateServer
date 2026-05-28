@@ -30,9 +30,6 @@ public:
         }
         catch (sql::SQLException &e)
         {
-            std::cerr << "SQLException: " << e.what();
-            std::cerr << " (MySQL error code: " << e.getErrorCode();
-            std::cerr << ", SQLState: " << e.getSQLState() << " )" << std::endl;
             return false;
         }
     }

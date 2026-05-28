@@ -16,7 +16,6 @@ void HttpConnection::start()
                          {
                              if (ec)
                              {
-                                 std::cout << "http read err is " << ec.what() << std::endl;
                                  return;
                              }
                              boost::ignore_unused(bytes_transferred);
@@ -25,7 +24,6 @@ void HttpConnection::start()
                          }
                          catch (std::exception& e)
                          {
-                             std::cout << "exception is " << e.what() << std::endl;
                          }
                      });
 }

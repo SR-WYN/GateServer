@@ -10,6 +10,7 @@ find_package(Boost REQUIRED COMPONENTS system thread filesystem)
 find_package(jsoncpp REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_library(HIREDIS_LIB hiredis REQUIRED)
 find_program(MYSQL_CONFIG_EXECUTABLE NAMES mysql_config)
 

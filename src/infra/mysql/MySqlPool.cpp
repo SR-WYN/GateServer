@@ -46,7 +46,6 @@ MySqlPool::MySqlPool(const std::string& url, const std::string& user, const std:
     }
     catch (sql::SQLException& e)
     {
-        std::cout << "mysql pool init failed,error is " << e.what() << std::endl;
     }
 }
 
@@ -95,7 +94,6 @@ void MySqlPool::checkConnection()
             }
             catch (sql::SQLException& e)
             {
-                std::cout << "MySQL KeepAlive Error: " << e.what() << std::endl;
                 healthy = false; // 标记为坏连接，DEFER 此时不会将其还回池子
                 _fail_count++;
             }
@@ -130,12 +128,10 @@ bool MySqlPool::reconnect(long long timestamp)
             _pool.push(std::move(newCon));
         }
 
-        std::cout << "mysql connection reconnect success" << std::endl;
         return true;
     }
     catch (sql::SQLException& e)
     {
-        std::cout << "Reconnect failed,error is : " << e.what() << std::endl;
         return false;
     }
 }

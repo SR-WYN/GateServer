@@ -122,7 +122,7 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return;
             }
-            if (MysqlMgr::getInstance().userNameExists(name))
+            if (MysqlMgr::getInstance().dao().userNameExists(name))
             {
                 std::cout << "user exist in mysql" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
@@ -130,7 +130,7 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return;
             }
-            if (MysqlMgr::getInstance().emailExists(email))
+            if (MysqlMgr::getInstance().dao().emailExists(email))
             {
                 std::cout << "email exist in mysql" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
@@ -150,7 +150,7 @@ LogicSystem::LogicSystem()
                 return;
             }
 
-            int uid = MysqlMgr::getInstance().regUser(name, email, passwd);
+            int uid = MysqlMgr::getInstance().dao().regUser(name, email, passwd);
             if (uid == 0)
             {
                 std::cout << "user or email exist" << std::endl;
@@ -222,7 +222,7 @@ LogicSystem::LogicSystem()
                     return;
                 }
 
-                bool email_vaild = MysqlMgr::getInstance().checkEmail(email, name);
+                bool email_vaild = MysqlMgr::getInstance().dao().checkEmail(email, name);
                 if (!email_vaild)
                 {
                     std::cout << "email or user not exist" << std::endl;
@@ -232,7 +232,7 @@ LogicSystem::LogicSystem()
                     return;
                 }
 
-                bool b_up = MysqlMgr::getInstance().updatePwd(email, pwd);
+                bool b_up = MysqlMgr::getInstance().dao().updatePwd(email, pwd);
                 if (!b_up)
                 {
                     std::cout << "update pwd failed" << std::endl;
@@ -273,7 +273,7 @@ LogicSystem::LogicSystem()
                 auto email = src_root["email"].asString();
                 auto pwd = src_root["passwd"].asString();
                 UserInfo userInfo;
-                bool pwd_vaild = MysqlMgr::getInstance().checkPwd(email, pwd, userInfo);
+                bool pwd_vaild = MysqlMgr::getInstance().dao().checkPwd(email, pwd, userInfo);
                 if (!pwd_vaild)
                 {
                     std::cout << "email pwd not match " << std::endl;

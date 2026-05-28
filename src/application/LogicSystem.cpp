@@ -111,15 +111,34 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return;
             }
-            bool b_user_exist = RedisMgr::getInstance().existsKey(src_root["user"].asString());
-            if (b_user_exist)
+            auto name = src_root["user"].asString();
+            auto email = src_root["email"].asString();
+
+            if (RedisMgr::getInstance().existsKey(name))
             {
-                std::cout << "user exist" << std::endl;
+                std::cout << "user exist in redis" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
                 std::string jsonstr = root.toStyledString();
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return;
             }
+            if (MysqlMgr::getInstance().userNameExists(name))
+            {
+                std::cout << "user exist in mysql" << std::endl;
+                root["error"] = ErrorCodes::USER_EXIST;
+                std::string jsonstr = root.toStyledString();
+                beast::ostream(connection->GetResponse().body()) << jsonstr;
+                return;
+            }
+            if (MysqlMgr::getInstance().emailExists(email))
+            {
+                std::cout << "email exist in mysql" << std::endl;
+                root["error"] = ErrorCodes::USER_EXIST;
+                std::string jsonstr = root.toStyledString();
+                beast::ostream(connection->GetResponse().body()) << jsonstr;
+                return;
+            }
+
             auto passwd = src_root["passwd"].asString();
             auto confirm = src_root["confirm"].asString();
             if (passwd != confirm)
@@ -131,10 +150,8 @@ LogicSystem::LogicSystem()
                 return;
             }
 
-            auto name = src_root["user"].asString();
-            auto email = src_root["email"].asString();
             int uid = MysqlMgr::getInstance().regUser(name, email, passwd);
-            if (uid == 0 || uid == -1)
+            if (uid == 0)
             {
                 std::cout << "user or email exist" << std::endl;
                 root["error"] = ErrorCodes::USER_EXIST;
@@ -142,6 +159,16 @@ LogicSystem::LogicSystem()
                 beast::ostream(connection->GetResponse().body()) << jsonstr;
                 return;
             }
+            if (uid < 0)
+            {
+                std::cout << "register database error" << std::endl;
+                root["error"] = ErrorCodes::RPCFAILED;
+                std::string jsonstr = root.toStyledString();
+                beast::ostream(connection->GetResponse().body()) << jsonstr;
+                return;
+            }
+
+            RedisMgr::getInstance().set(name, email);
             root["error"] = ErrorCodes::SUCCESS;
             root["email"] = email;
             root["user"] = name;

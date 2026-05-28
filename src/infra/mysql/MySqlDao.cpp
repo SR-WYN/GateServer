@@ -22,39 +22,112 @@ MySqlDao::~MySqlDao()
     _pool->close();
 }
 
-int MySqlDao::regUser(const std::string& name, const std::string& email, const std::string& pwd)
+namespace
+{
+bool rowExists(sql::Connection* conn, const std::string& sql, const std::string& value)
+{
+    std::unique_ptr<sql::PreparedStatement> pstmt(conn->prepareStatement(sql));
+    pstmt->setString(1, value);
+    std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+    return res->next();
+}
+} // namespace
+
+bool MySqlDao::userNameExists(const std::string& name)
 {
     auto con = _pool->getConnection();
+    if (con == nullptr || con->_con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con]() { _pool->returnConnection(std::move(con)); });
     try
     {
-        if (con == nullptr)
-        {
-            return -1;
-        }
-        // 准备调用存储过程
-        std::unique_ptr<sql::PreparedStatement> stmt(
-            con->_con->prepareStatement("CALL reg_user(?,?,?,@result)"));
-        // 设置输入参数
-        stmt->setString(1, name);
-        stmt->setString(2, email);
-        stmt->setString(3, pwd);
-        // 执行存储过程
-        stmt->execute();
-        std::unique_ptr<sql::Statement> stmtResult(con->_con->createStatement());
-        std::unique_ptr<sql::ResultSet> res(stmtResult->executeQuery("SELECT @result AS result"));
-        if (res->next())
-        {
-            int result = res->getInt("result");
-            std::cout << "Result: " << result << std::endl;
-            _pool->returnConnection(std::move(con));
-            return result;
-        }
-        _pool->returnConnection(std::move(con));
-        return -1;
+        return rowExists(con->_con.get(), "SELECT 1 FROM user WHERE name = ? LIMIT 1", name);
     }
     catch (sql::SQLException& e)
     {
-        _pool->returnConnection(std::move(con));
+        std::cerr << "SQLException: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool MySqlDao::emailExists(const std::string& email)
+{
+    auto con = _pool->getConnection();
+    if (con == nullptr || con->_con == nullptr)
+    {
+        return false;
+    }
+    utils::Defer defer([this, &con]() { _pool->returnConnection(std::move(con)); });
+    try
+    {
+        return rowExists(con->_con.get(), "SELECT 1 FROM user WHERE email = ? LIMIT 1", email);
+    }
+    catch (sql::SQLException& e)
+    {
+        std::cerr << "SQLException: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+int MySqlDao::regUser(const std::string& name, const std::string& email, const std::string& pwd)
+{
+    auto con = _pool->getConnection();
+    if (con == nullptr || con->_con == nullptr)
+    {
+        return -1;
+    }
+    utils::Defer defer([this, &con]() { _pool->returnConnection(std::move(con)); });
+    try
+    {
+        if (rowExists(con->_con.get(), "SELECT 1 FROM user WHERE name = ? LIMIT 1", name) ||
+            rowExists(con->_con.get(), "SELECT 1 FROM user WHERE email = ? LIMIT 1", email))
+        {
+            return 0;
+        }
+
+        con->_con->setAutoCommit(false);
+
+        std::unique_ptr<sql::Statement> bump(con->_con->createStatement());
+        bump->executeUpdate("UPDATE user_id SET id = id + 1");
+
+        std::unique_ptr<sql::Statement> fetchId(con->_con->createStatement());
+        std::unique_ptr<sql::ResultSet> idRes(fetchId->executeQuery("SELECT id FROM user_id LIMIT 1"));
+        if (!idRes->next())
+        {
+            con->_con->rollback();
+            std::cerr << "user_id table is empty" << std::endl;
+            return -1;
+        }
+        const int uid = idRes->getInt("id");
+
+        std::unique_ptr<sql::PreparedStatement> insert(con->_con->prepareStatement(
+            "INSERT INTO user (uid, name, nick, `desc`, sex, icon, email, pwd) "
+            "VALUES (?,?,?,?,?,?,?,?)"));
+        insert->setInt(1, uid);
+        insert->setString(2, name);
+        insert->setString(3, name); // 与 ChatServer 一致：注册时 nick 默认等于 name
+        insert->setString(4, "");
+        insert->setInt(5, 0);
+        insert->setString(6, "");
+        insert->setString(7, email);
+        insert->setString(8, pwd);
+        insert->executeUpdate();
+
+        con->_con->commit();
+        std::cout << "registered user uid=" << uid << " name=" << name << std::endl;
+        return uid;
+    }
+    catch (sql::SQLException& e)
+    {
+        try
+        {
+            con->_con->rollback();
+        }
+        catch (...)
+        {
+        }
         std::cerr << "SQLException: " << e.what() << std::endl;
         std::cerr << "MYSQL error code: " << e.getErrorCode() << std::endl;
         std::cerr << "SQLState: " << e.getSQLState() << std::endl;

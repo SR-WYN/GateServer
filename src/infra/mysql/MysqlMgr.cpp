@@ -13,6 +13,16 @@ int MysqlMgr::regUser(const std::string& name,const std::string& email,const std
     return _dao.regUser(name,email,pwd);
 }
 
+bool MysqlMgr::userNameExists(const std::string& name)
+{
+    return _dao.userNameExists(name);
+}
+
+bool MysqlMgr::emailExists(const std::string& email)
+{
+    return _dao.emailExists(email);
+}
+
 bool MysqlMgr::checkEmail(const std::string& email,const std::string& name)
 {
     return _dao.checkEmail(email,name);

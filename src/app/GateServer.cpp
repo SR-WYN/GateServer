@@ -1,5 +1,6 @@
 #include "CServer.h"
 #include "ConfigMgr.h"
+#include "Log.h"
 #include "LogicSystem.h"
 #include "RedisMgr.h"
 #include "http_types.h"
@@ -21,6 +22,11 @@ int main()
     try
     {
         init();
+        if (!Log::init("GateServer", ConfigMgr::getInstance().getLogConfig()))
+        {
+            return EXIT_FAILURE;
+        }
+        Log::info(LogModule::App, "GateServer starting");
         // testRedisMgr();
         // testRedis();
         {
@@ -41,9 +47,13 @@ int main()
             std::make_shared<CServer>(ioc, gate_port)->start();
             ioc.run();
         }
+        Log::info(LogModule::App, "GateServer stopped");
+        Log::shutdown();
     }
     catch (std::exception& e)
     {
+        Log::error(LogModule::App, "GateServer exception: {}", e.what());
+        Log::shutdown();
         return EXIT_FAILURE;
     }
 }

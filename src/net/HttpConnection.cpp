@@ -1,4 +1,5 @@
 #include "HttpConnection.h"
+#include "Log.h"
 #include "LogicSystem.h"
 #include "utils.h"
 HttpConnection::HttpConnection(boost::asio::io_context& ioc)
@@ -24,6 +25,9 @@ void HttpConnection::start()
                          }
                          catch (std::exception& e)
                          {
+                             Log::error(LogModule::Http,
+                                        "http read handler exception: {}",
+                                        e.what());
                          }
                      });
 }

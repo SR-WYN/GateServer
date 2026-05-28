@@ -1,4 +1,8 @@
 {
+  "Log": {
+    "Dir": "/home/asus/NETLEARN/GateServer/src/logdir",
+    "Level": "info"
+  },
   "GateServer": {
     "Port": 7979
   },

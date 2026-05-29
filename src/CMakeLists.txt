@@ -48,6 +48,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     gRPC::grpc++
     gRPC::grpc++_reflection
     protobuf::libprotobuf
+    redis++
     hiredis
     mysqlcppconn
     spdlog::spdlog

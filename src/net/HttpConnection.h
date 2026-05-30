@@ -1,19 +1,27 @@
 #pragma once
 
-#include "http_types.h"
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/http.hpp>
 #include <boost/beast/http/dynamic_body.hpp>
 #include <string>
 #include <unordered_map>
 
+namespace beast = boost::beast;
+namespace http = beast::http;
+namespace net = boost::asio;
+using tcp = boost::asio::ip::tcp;
+
 class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 {
 public:
-    HttpConnection(boost::asio::io_context& ioc);
+    HttpConnection(boost::asio::io_context &ioc);
     void start();
-    tcp::socket& GetSocket();
-    http::response<http::dynamic_body>& GetResponse();
-    http::request<http::dynamic_body>& GetRequest();
-    std::unordered_map<std::string,std::string>& GetParams();
+    tcp::socket &GetSocket();
+    http::response<http::dynamic_body> &GetResponse();
+    http::request<http::dynamic_body> &GetRequest();
+    std::unordered_map<std::string, std::string> &GetParams();
+
 private:
     void checkDeadline();
     void writeResponse();
@@ -25,5 +33,5 @@ private:
     http::response<http::dynamic_body> _response;
     net::steady_timer _deadline{_socket.get_executor(), std::chrono::seconds(60)};
     std::string _get_url;
-    std::unordered_map<std::string, std::string> _get_params; 
+    std::unordered_map<std::string, std::string> _get_params;
 };

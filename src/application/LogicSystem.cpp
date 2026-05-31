@@ -6,7 +6,6 @@
 #include "VerifyGrpcClient.h"
 #include "data.h"
 #include "error_codes.h"
-#include "http_types.h"
 
 #include <boost/beast/core/buffers_to_string.hpp>
 #include <boost/beast/core/ostream.hpp>

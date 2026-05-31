@@ -1,6 +1,6 @@
 #pragma once
 
-#include "http_types.h"
+#include "HttpConnection.h"
 
 class CServer : public std::enable_shared_from_this<CServer>
 {

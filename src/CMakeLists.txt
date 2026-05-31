@@ -1,5 +1,7 @@
 # 扁平 #include：各子目录均加入 INTERFACE，源文件写 "Foo.h" 即可
 
+set_source_files_properties(${PROTO_SRCS} PROPERTIES GENERATED TRUE)
+
 add_library(gateserver_includes INTERFACE)
 target_include_directories(gateserver_includes INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/common

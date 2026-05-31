@@ -3,7 +3,7 @@
 #include "Log.h"
 #include "LogicSystem.h"
 #include "RedisMgr.h"
-#include "http_types.h"
+#include "HttpConnection.h"
 
 #include <cassert>
 #include <cstdlib>

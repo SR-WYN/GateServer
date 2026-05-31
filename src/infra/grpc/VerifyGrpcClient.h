@@ -1,3 +1,4 @@
+// VerifyGrpcClient.h - 通过 gRPC 向 VerifyServer 请求验证码
 #pragma once
 
 #include "Singleton.h"
@@ -21,6 +22,7 @@ class VerifyGrpcClient : public Singleton<VerifyGrpcClient>
     friend class Singleton<VerifyGrpcClient>;
 
 public:
+    // 请求向指定 email 发送验证码，返回 gRPC 响应
     GetVerifyRsp getVerifyCode(std::string email);
     ~VerifyGrpcClient() override;
 

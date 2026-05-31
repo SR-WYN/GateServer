@@ -1,37 +1,42 @@
+// HttpConnection.cpp - HTTP 连接处理实现，异步读写 + 请求分发
 #include "HttpConnection.h"
 #include "Log.h"
 #include "LogicSystem.h"
 #include "utils.h"
-HttpConnection::HttpConnection(boost::asio::io_context& ioc)
-    : _socket(ioc)
+
+HttpConnection::HttpConnection(boost::asio::io_context &ioc) : _socket(ioc)
 {
 }
 
+// 启动异步读取 HTTP 请求，读取完成后自动分发处理
 void HttpConnection::start()
 {
     auto self = shared_from_this();
     http::async_read(_socket, _buffer, _request,
-                     [self](boost::beast::error_code ec, std::size_t bytes_transferred)
-                     {
+                     [self](boost::beast::error_code ec, std::size_t bytes_transferred) {
                          try
                          {
                              if (ec)
                              {
+                                 Log::error(LogModule::Http, "async_read error: {}", ec.message());
                                  return;
                              }
                              boost::ignore_unused(bytes_transferred);
+                             Log::info(LogModule::Http, "Received request: {} {}",
+                                       self->_request.method_string(),
+                                       self->_request.target());
                              self->handleReq();
                              self->checkDeadline();
                          }
-                         catch (std::exception& e)
+                         catch (std::exception &e)
                          {
-                             Log::error(LogModule::Http,
-                                        "http read handler exception: {}",
+                             Log::error(LogModule::Http, "http read handler exception: {}",
                                         e.what());
                          }
                      });
 }
 
+// 解析 GET 请求的 URL 查询参数（如 ?key1=val1&key2=val2）
 void HttpConnection::preParseGetParam()
 {
     // 提取 URI
@@ -74,6 +79,7 @@ void HttpConnection::preParseGetParam()
     }
 }
 
+// 根据 HTTP method 分发请求到 LogicSystem，处理 GET/POST
 void HttpConnection::handleReq()
 {
     // 设置版本
@@ -82,9 +88,11 @@ void HttpConnection::handleReq()
     if (_request.method() == http::verb::get)
     {
         preParseGetParam();
+        Log::info(LogModule::Http, "Handle GET: {}", _get_url);
         bool success = LogicSystem::getInstance().handleGet(_get_url, shared_from_this());
         if (!success)
         {
+            Log::warn(LogModule::Http, "GET url not found: {}", _get_url);
             _response.result(http::status::not_found);
             _response.set(http::field::content_type, "test/plain");
             beast::ostream(_response.body()) << "url not found\r\n";
@@ -99,9 +107,11 @@ void HttpConnection::handleReq()
     }
     if (_request.method() == http::verb::post)
     {
+        Log::info(LogModule::Http, "Handle POST: {}", _request.target());
         bool success = LogicSystem::getInstance().handlePost(_request.target(), shared_from_this());
         if (!success)
         {
+            Log::warn(LogModule::Http, "POST url not found: {}", _request.target());
             _response.result(http::status::not_found);
             _response.set(http::field::content_type, "test/plain");
             beast::ostream(_response.body()) << "url not found\r\n";
@@ -116,47 +126,52 @@ void HttpConnection::handleReq()
     }
 }
 
+// 异步写入 HTTP 响应，写完后关闭连接发送端
 void HttpConnection::writeResponse()
 {
     auto self = shared_from_this();
     _response.content_length(_response.body().size());
     http::async_write(_socket, _response,
-                      [self](boost::beast::error_code ec, std::size_t bytes_transferred)
-                      {
+                      [self](boost::beast::error_code ec, std::size_t bytes_transferred) {
+                          if (ec)
+                          {
+                              Log::error(LogModule::Http, "async_write error: {}", ec.message());
+                          }
+                          Log::info(LogModule::Http, "Response sent, closing connection");
                           self->_socket.shutdown(tcp::socket::shutdown_send, ec);
                           self->_deadline.cancel();
                       });
 }
 
+// 超时检测，60 秒无响应则关闭连接
 void HttpConnection::checkDeadline()
 {
     auto self = shared_from_this();
-    _deadline.async_wait(
-        [self](beast::error_code ec)
+    _deadline.async_wait([self](beast::error_code ec) {
+        if (!ec)
         {
-            if (!ec)
-            {
-                self->_socket.close(ec);
-            }
-        });
+            Log::warn(LogModule::Http, "Connection timeout, closing socket");
+            self->_socket.close(ec);
+        }
+    });
 }
 
-http::response<http::dynamic_body>& HttpConnection::GetResponse()
+http::response<http::dynamic_body> &HttpConnection::GetResponse()
 {
     return _response;
 }
 
-http::request<http::dynamic_body>& HttpConnection::GetRequest()
+http::request<http::dynamic_body> &HttpConnection::GetRequest()
 {
     return _request;
 }
 
-std::unordered_map<std::string, std::string>& HttpConnection::GetParams()
+std::unordered_map<std::string, std::string> &HttpConnection::GetParams()
 {
     return _get_params;
 }
 
-tcp::socket& HttpConnection::GetSocket()
+tcp::socket &HttpConnection::GetSocket()
 {
     return _socket;
 }

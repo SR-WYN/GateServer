@@ -1,4 +1,6 @@
+// StatusConPool.cpp - StatusServer gRPC 连接池实现
 #include "StatusConPool.h"
+#include "Log.h"
 #include "message.grpc.pb.h"
 #include <grpcpp/security/credentials.h>
 #include <memory>
@@ -9,16 +11,19 @@ StatusConPool::StatusConPool(size_t poolSize, std::string host, std::string port
       _port(port),
       _b_stop(false)
 {
+    Log::info(LogModule::Grpc, "StatusConPool creating {} connections to {}:{}", poolSize, host, port);
     for (size_t i = 0; i < poolSize; i++)
     {
         std::shared_ptr<Channel> channel =
             grpc::CreateChannel(host + ":" + port, grpc::InsecureChannelCredentials());
         _connections.push(StatusService::NewStub(channel));
     }
+    Log::info(LogModule::Grpc, "StatusConPool created {} connections", _connections.size());
 }
 
 StatusConPool::~StatusConPool()
 {
+    Log::info(LogModule::Grpc, "StatusConPool destroying, remaining connections: {}", _connections.size());
     std::lock_guard<std::mutex> lock(_mutex);
     close();
     while (!_connections.empty())
@@ -39,6 +44,7 @@ std::unique_ptr<StatusService::Stub> StatusConPool::getConnection()
     });
     if (_b_stop)
     {
+        Log::warn(LogModule::Grpc, "StatusConPool getConnection failed: pool stopped");
         return nullptr;
     }
     auto context = std::move(_connections.front());

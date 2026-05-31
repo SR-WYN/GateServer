@@ -1,3 +1,4 @@
+// HttpConnection.h - HTTP 连接处理类，负责解析 HTTP 请求并分发到 LogicSystem
 #pragma once
 
 #include <boost/asio.hpp>
@@ -12,10 +13,12 @@ namespace http = beast::http;
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 
+// HttpConnection 继承 enable_shared_from_this，通过 shared_ptr 管理异步生命周期
 class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 {
 public:
     HttpConnection(boost::asio::io_context &ioc);
+    // 启动异步读取 HTTP 请求
     void start();
     tcp::socket &GetSocket();
     http::response<http::dynamic_body> &GetResponse();
@@ -23,9 +26,13 @@ public:
     std::unordered_map<std::string, std::string> &GetParams();
 
 private:
+    // 超时检测，60 秒无响应则关闭连接
     void checkDeadline();
+    // 异步写入 HTTP 响应
     void writeResponse();
+    // 根据 method 分发 GET/POST 请求到 LogicSystem
     void handleReq();
+    // 解析 GET 请求的 URL 查询参数
     void preParseGetParam();
     tcp::socket _socket;
     beast::flat_buffer _buffer{8192};

@@ -1,4 +1,6 @@
+// RPConPool.cpp - VerifyServer gRPC 连接池实现
 #include "RPConPool.h"
+#include "Log.h"
 #include <memory>
 
 RPConPool::RPConPool(size_t poolsize, std::string host, std::string port)
@@ -7,16 +9,19 @@ RPConPool::RPConPool(size_t poolsize, std::string host, std::string port)
       _port(port),
       _b_stop(false)
 {
+    Log::info(LogModule::Grpc, "RPConPool creating {} connections to {}:{}", poolsize, host, port);
     for (size_t i = 0; i < _pool_size; i++)
     {
         std::shared_ptr<Channel> channel =
             grpc::CreateChannel(host + ":" + port, grpc::InsecureChannelCredentials());
         _connections.push(VerifyService::NewStub(channel));
     }
+    Log::info(LogModule::Grpc, "RPConPool created {} connections", _connections.size());
 }
 
 RPConPool::~RPConPool()
 {
+    Log::info(LogModule::Grpc, "RPConPool destroying, remaining connections: {}", _connections.size());
     close();
     std::lock_guard<std::mutex> lock(_mutex);
     while (!_connections.empty())
@@ -46,6 +51,7 @@ std::unique_ptr<VerifyService::Stub> RPConPool::getConnection()
               });
     if (_b_stop)
     {
+        Log::warn(LogModule::Grpc, "RPConPool getConnection failed: pool stopped");
         return nullptr;
     }
     auto context = std::move(_connections.front());

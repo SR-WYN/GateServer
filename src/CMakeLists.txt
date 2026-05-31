@@ -8,6 +8,8 @@ target_include_directories(gateserver_includes INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
     ${CMAKE_CURRENT_SOURCE_DIR}/net
     ${CMAKE_CURRENT_SOURCE_DIR}/application
+    ${CMAKE_CURRENT_SOURCE_DIR}/application/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/application/controller
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/config
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/redis
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/mysql

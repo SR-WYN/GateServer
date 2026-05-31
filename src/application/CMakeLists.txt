@@ -1,4 +1,9 @@
-add_library(gs_application STATIC LogicSystem.cpp)
+add_library(gs_application STATIC
+    LogicSystem.cpp
+    common/JsonUtil.cpp
+    controller/UserController.cpp
+    controller/VerifyController.cpp
+)
 target_link_libraries(gs_application PUBLIC
     gateserver_includes
     gs_domain

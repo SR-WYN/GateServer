@@ -14,7 +14,9 @@ public:
     /// 注册新用户，返回 uid（>0 成功，0 已存在，<0 失败）
     virtual int regUser(const std::string& name,
                         const std::string& email,
-                        const std::string& pwd) = 0;
+                        const std::string& pwd,
+                        const std::string& nick = "",
+                        int sex = 0) = 0;
 
     /// 检查用户名是否已存在
     virtual bool userNameExists(const std::string& name) = 0;

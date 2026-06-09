@@ -55,6 +55,8 @@ void UserController::handleRegister(std::shared_ptr<HttpConnection> conn)
     auto name = src_root["user"].asString();
     auto passwd = src_root["passwd"].asString();
     auto confirm = src_root["confirm"].asString();
+    auto nick = src_root.get("nick", "").asString();
+    int sex = src_root.get("sex", 0).asInt();
 
     // 检查用户是否已存在 — 通过接口调用
     if (_userCache->existsKey(name) || _userDao->userNameExists(name) ||
@@ -75,7 +77,7 @@ void UserController::handleRegister(std::shared_ptr<HttpConnection> conn)
     }
 
     // 注册用户 — 通过接口调用
-    int uid = _userDao->regUser(name, email, passwd);
+    int uid = _userDao->regUser(name, email, passwd, nick, sex);
     if (uid == 0)
     {
         Log::warn(LogModule::Http, "Register: user already exists (uid=0) - {}", name);

@@ -4,9 +4,11 @@
 
 int UserDaoAdapter::regUser(const std::string& name,
                             const std::string& email,
-                            const std::string& pwd)
+                            const std::string& pwd,
+                            const std::string& nick,
+                            int sex)
 {
-    return MysqlMgr::getInstance().dao().regUser(name, email, pwd);
+    return MysqlMgr::getInstance().dao().regUser(name, email, pwd, nick, sex);
 }
 
 bool UserDaoAdapter::userNameExists(const std::string& name)

@@ -51,7 +51,8 @@ bool MySqlDao::emailExists(const std::string &email)
         [](sql::ResultSet &) { return true; });
 }
 
-int MySqlDao::regUser(const std::string &name, const std::string &email, const std::string &pwd)
+int MySqlDao::regUser(const std::string &name, const std::string &email,
+                      const std::string &pwd, const std::string &nick, int sex)
 {
     int uid = -1;
     DbSession::withConn(*_pool, [&](sql::Connection &conn) {
@@ -80,9 +81,9 @@ int MySqlDao::regUser(const std::string &name, const std::string &email, const s
             "VALUES (?,?,?,?,?,?,?,?)"));
         insert->setInt(1, new_uid);
         insert->setString(2, name);
-        insert->setString(3, name);
+        insert->setString(3, nick);
         insert->setString(4, "");
-        insert->setInt(5, 0);
+        insert->setInt(5, sex);
         insert->setString(6, "");
         insert->setString(7, email);
         insert->setString(8, pwd);

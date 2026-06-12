@@ -2,13 +2,13 @@
 #pragma once
 #include "message.grpc.pb.h"
 #include "message.pb.h"
+#include <atomic>
+#include <condition_variable>
 #include <grpcpp/grpcpp.h>
 #include <memory>
-#include <string>
-#include <atomic>
-#include <queue>
 #include <mutex>
-#include <condition_variable>
+#include <queue>
+#include <string>
 
 using grpc::Channel;
 
@@ -27,7 +27,7 @@ public:
     void close();
 
 private:
-    std::atomic<bool> _b_stop;
+    std::atomic<bool> _stop;
     size_t _pool_size;
     std::string _host;
     std::string _port;

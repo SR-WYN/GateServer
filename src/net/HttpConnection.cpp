@@ -23,8 +23,7 @@ void HttpConnection::start()
                              }
                              boost::ignore_unused(bytes_transferred);
                              Log::info(LogModule::Http, "Received request: {} {}",
-                                       self->_request.method_string(),
-                                       self->_request.target());
+                                       self->_request.method_string(), self->_request.target());
                              self->handleReq();
                              self->checkDeadline();
                          }
@@ -156,22 +155,22 @@ void HttpConnection::checkDeadline()
     });
 }
 
-http::response<http::dynamic_body> &HttpConnection::GetResponse()
+http::response<http::dynamic_body> &HttpConnection::getResponse()
 {
     return _response;
 }
 
-http::request<http::dynamic_body> &HttpConnection::GetRequest()
+http::request<http::dynamic_body> &HttpConnection::getRequest()
 {
     return _request;
 }
 
-std::unordered_map<std::string, std::string> &HttpConnection::GetParams()
+std::unordered_map<std::string, std::string> &HttpConnection::getParams()
 {
     return _get_params;
 }
 
-tcp::socket &HttpConnection::GetSocket()
+tcp::socket &HttpConnection::getSocket()
 {
     return _socket;
 }

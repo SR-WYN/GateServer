@@ -3,12 +3,12 @@
 
 #include "message.grpc.pb.h"
 #include "message.pb.h"
-#include <grpcpp/grpcpp.h>
 #include <atomic>
-#include <queue>
+#include <condition_variable>
+#include <grpcpp/grpcpp.h>
 #include <memory>
 #include <mutex>
-#include <condition_variable>
+#include <queue>
 
 using grpc::Channel;
 using grpc::ClientContext;
@@ -30,7 +30,7 @@ public:
     void returnConnection(std::unique_ptr<VerifyService::Stub> context);
 
 private:
-    std::atomic<bool> _b_stop;
+    std::atomic<bool> _stop;
     size_t _pool_size;
     std::string _host;
     std::string _port;

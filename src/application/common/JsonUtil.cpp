@@ -7,7 +7,7 @@
 
 Json::Value JsonUtil::parseRequestBody(std::shared_ptr<HttpConnection> conn)
 {
-    auto body_str = boost::beast::buffers_to_string(conn->GetRequest().body().data());
+    auto body_str = boost::beast::buffers_to_string(conn->getRequest().body().data());
     Json::Value root;
     Json::Reader reader;
     bool success = reader.parse(body_str, root);
@@ -19,11 +19,11 @@ Json::Value JsonUtil::parseRequestBody(std::shared_ptr<HttpConnection> conn)
     return root;
 }
 
-void JsonUtil::makeJsonResponse(std::shared_ptr<HttpConnection> conn, const Json::Value& root)
+void JsonUtil::makeJsonResponse(std::shared_ptr<HttpConnection> conn, const Json::Value &root)
 {
-    conn->GetResponse().set(http::field::content_type, "text/json");
+    conn->getResponse().set(http::field::content_type, "text/json");
     std::string jsonstr = root.toStyledString();
-    beast::ostream(conn->GetResponse().body()) << jsonstr;
+    beast::ostream(conn->getResponse().body()) << jsonstr;
 }
 
 void JsonUtil::makeErrorResponse(std::shared_ptr<HttpConnection> conn, int errorCode)

@@ -9,13 +9,8 @@
 // 辅助结构体：管理配置节
 struct SectionInfo
 {
-    SectionInfo();
-    ~SectionInfo();
-    SectionInfo(const SectionInfo& src);
-    SectionInfo& operator=(const SectionInfo& src);
-
     // 重载 [] 运算符方便访问 Key
-    std::string operator[](const std::string& key);
+    std::string operator[](const std::string &key) const;
 
     std::map<std::string, std::string> _section_datas;
 };
@@ -29,7 +24,7 @@ public:
     ~ConfigMgr();
 
     // 重载 [] 运算符方便访问 Section
-    SectionInfo operator[](const std::string& section);
+    SectionInfo operator[](const std::string &section) const;
     LogConfig getLogConfig() const;
 
 private:
@@ -38,8 +33,8 @@ private:
     ConfigMgr();
 
     // 禁止拷贝和赋值
-    ConfigMgr(const ConfigMgr& src) = delete;
-    ConfigMgr& operator=(const ConfigMgr& src) = delete;
+    ConfigMgr(const ConfigMgr &src) = delete;
+    ConfigMgr &operator=(const ConfigMgr &src) = delete;
 
     // 存储所有配置数据的 Map
     std::map<std::string, SectionInfo> _config_map;

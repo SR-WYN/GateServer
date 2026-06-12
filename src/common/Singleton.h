@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 
 template <typename T>
 class Singleton
@@ -20,9 +19,5 @@ public:
     {
         static T instance;
         return instance;
-    }
-
-    void printAddress()
-    {
     }
 };

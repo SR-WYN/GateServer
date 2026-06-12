@@ -4,10 +4,7 @@
 #include <memory>
 
 RPConPool::RPConPool(size_t poolsize, std::string host, std::string port)
-    : _pool_size(poolsize),
-      _host(host),
-      _port(port),
-      _b_stop(false)
+    : _pool_size(poolsize), _host(host), _port(port), _stop(false)
 {
     Log::info(LogModule::Grpc, "RPConPool creating {} connections to {}:{}", poolsize, host, port);
     for (size_t i = 0; i < _pool_size; i++)
@@ -21,7 +18,8 @@ RPConPool::RPConPool(size_t poolsize, std::string host, std::string port)
 
 RPConPool::~RPConPool()
 {
-    Log::info(LogModule::Grpc, "RPConPool destroying, remaining connections: {}", _connections.size());
+    Log::info(LogModule::Grpc, "RPConPool destroying, remaining connections: {}",
+              _connections.size());
     close();
     std::lock_guard<std::mutex> lock(_mutex);
     while (!_connections.empty())
@@ -33,23 +31,21 @@ RPConPool::~RPConPool()
 void RPConPool::close()
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    _b_stop = true;
+    _stop = true;
     _cond.notify_all();
 }
 
 std::unique_ptr<VerifyService::Stub> RPConPool::getConnection()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock,
-              [this]()
-              {
-                  if (_b_stop)
-                  {
-                      return true;
-                  }
-                  return !_connections.empty();
-              });
-    if (_b_stop)
+    _cond.wait(lock, [this]() {
+        if (_stop)
+        {
+            return true;
+        }
+        return !_connections.empty();
+    });
+    if (_stop)
     {
         Log::warn(LogModule::Grpc, "RPConPool getConnection failed: pool stopped");
         return nullptr;
@@ -62,7 +58,7 @@ std::unique_ptr<VerifyService::Stub> RPConPool::getConnection()
 void RPConPool::returnConnection(std::unique_ptr<VerifyService::Stub> context)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (_b_stop)
+    if (_stop)
     {
         return;
     }

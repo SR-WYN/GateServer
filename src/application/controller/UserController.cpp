@@ -2,20 +2,20 @@
 // 所有基础设施调用均通过接口委托，不直接依赖具体实现
 #include "UserController.h"
 #include "HttpConnection.h"
-#include "IStatusRpcClient.h"
-#include "IUserCache.h"
-#include "IUserDao.h"
-#include "IVerifyCodeCache.h"
+#include "StatusRpcClient.h"
+#include "UserCache.h"
+#include "UserDao.h"
+#include "VerifyCodeCache.h"
 #include "JsonUtil.h"
 #include "Log.h"
 #include "error_codes.h"
 
 #include <json/value.h>
 
-UserController::UserController(std::shared_ptr<IUserDao> userDao,
-                               std::shared_ptr<IVerifyCodeCache> verifyCache,
-                               std::shared_ptr<IUserCache> userCache,
-                               std::shared_ptr<IStatusRpcClient> statusRpc)
+UserController::UserController(std::shared_ptr<UserDao> userDao,
+                               std::shared_ptr<VerifyCodeCache> verifyCache,
+                               std::shared_ptr<UserCache> userCache,
+                               std::shared_ptr<StatusRpcClient> statusRpc)
     : _userDao(std::move(userDao)), _verifyCache(std::move(verifyCache)),
       _userCache(std::move(userCache)), _statusRpc(std::move(statusRpc))
 {
@@ -87,7 +87,7 @@ void UserController::handleRegister(std::shared_ptr<HttpConnection> conn)
     if (uid < 0)
     {
         Log::error(LogModule::Http, "Register: regUser failed, uid={}", uid);
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::RPCFAILED);
+        JsonUtil::makeErrorResponse(conn, ErrorCodes::RPC_FAILED);
         return;
     }
 
@@ -135,7 +135,7 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
     if (reply.error())
     {
         Log::error(LogModule::Http, "Login: getChatServer RPC failed for uid={}", userInfo.uid);
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::RPCFAILED);
+        JsonUtil::makeErrorResponse(conn, ErrorCodes::RPC_FAILED);
         return;
     }
 

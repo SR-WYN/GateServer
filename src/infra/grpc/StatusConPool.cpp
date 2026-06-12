@@ -6,12 +6,10 @@
 #include <memory>
 
 StatusConPool::StatusConPool(size_t poolSize, std::string host, std::string port)
-    : _pool_size(poolSize),
-      _host(host),
-      _port(port),
-      _b_stop(false)
+    : _pool_size(poolSize), _host(host), _port(port), _stop(false)
 {
-    Log::info(LogModule::Grpc, "StatusConPool creating {} connections to {}:{}", poolSize, host, port);
+    Log::info(LogModule::Grpc, "StatusConPool creating {} connections to {}:{}", poolSize, host,
+              port);
     for (size_t i = 0; i < poolSize; i++)
     {
         std::shared_ptr<Channel> channel =
@@ -23,7 +21,8 @@ StatusConPool::StatusConPool(size_t poolSize, std::string host, std::string port
 
 StatusConPool::~StatusConPool()
 {
-    Log::info(LogModule::Grpc, "StatusConPool destroying, remaining connections: {}", _connections.size());
+    Log::info(LogModule::Grpc, "StatusConPool destroying, remaining connections: {}",
+              _connections.size());
     std::lock_guard<std::mutex> lock(_mutex);
     close();
     while (!_connections.empty())
@@ -35,14 +34,14 @@ StatusConPool::~StatusConPool()
 std::unique_ptr<StatusService::Stub> StatusConPool::getConnection()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock,[this]{
-        if (_b_stop)
+    _cond.wait(lock, [this] {
+        if (_stop)
         {
             return true;
         }
         return !_connections.empty();
     });
-    if (_b_stop)
+    if (_stop)
     {
         Log::warn(LogModule::Grpc, "StatusConPool getConnection failed: pool stopped");
         return nullptr;
@@ -55,7 +54,7 @@ std::unique_ptr<StatusService::Stub> StatusConPool::getConnection()
 void StatusConPool::returnConnection(std::unique_ptr<StatusService::Stub> context)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (_b_stop)
+    if (_stop)
     {
         return;
     }
@@ -65,7 +64,6 @@ void StatusConPool::returnConnection(std::unique_ptr<StatusService::Stub> contex
 
 void StatusConPool::close()
 {
-    _b_stop = true;
+    _stop = true;
     _cond.notify_all();
 }
-

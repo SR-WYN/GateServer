@@ -20,10 +20,10 @@ public:
     HttpConnection(boost::asio::io_context &ioc);
     // 启动异步读取 HTTP 请求
     void start();
-    tcp::socket &GetSocket();
-    http::response<http::dynamic_body> &GetResponse();
-    http::request<http::dynamic_body> &GetRequest();
-    std::unordered_map<std::string, std::string> &GetParams();
+    tcp::socket &getSocket();
+    http::response<http::dynamic_body> &getResponse();
+    http::request<http::dynamic_body> &getRequest();
+    std::unordered_map<std::string, std::string> &getParams();
 
 private:
     // 超时检测，60 秒无响应则关闭连接

@@ -5,27 +5,26 @@
 #include <memory>
 
 class HttpConnection;
-class IUserDao;
-class IVerifyCodeCache;
-class IUserCache;
-class IStatusRpcClient;
+class UserDao;
+class VerifyCodeCache;
+class UserCache;
+class StatusRpcClient;
 
-class UserController {
+class UserController
+{
 public:
     /// 构造函数注入所有依赖
-    UserController(
-        std::shared_ptr<IUserDao> userDao,
-        std::shared_ptr<IVerifyCodeCache> verifyCache,
-        std::shared_ptr<IUserCache> userCache,
-        std::shared_ptr<IStatusRpcClient> statusRpc);
+    UserController(std::shared_ptr<UserDao> userDao, std::shared_ptr<VerifyCodeCache> verifyCache,
+                   std::shared_ptr<UserCache> userCache,
+                   std::shared_ptr<StatusRpcClient> statusRpc);
 
     void handleRegister(std::shared_ptr<HttpConnection> conn);
     void handleLogin(std::shared_ptr<HttpConnection> conn);
     void handleResetPwd(std::shared_ptr<HttpConnection> conn);
 
 private:
-    std::shared_ptr<IUserDao> _userDao;
-    std::shared_ptr<IVerifyCodeCache> _verifyCache;
-    std::shared_ptr<IUserCache> _userCache;
-    std::shared_ptr<IStatusRpcClient> _statusRpc;
+    std::shared_ptr<UserDao> _userDao;
+    std::shared_ptr<VerifyCodeCache> _verifyCache;
+    std::shared_ptr<UserCache> _userCache;
+    std::shared_ptr<StatusRpcClient> _statusRpc;
 };

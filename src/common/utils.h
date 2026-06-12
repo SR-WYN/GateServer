@@ -12,18 +12,18 @@ unsigned char toHex(unsigned char x);
 unsigned char fromHex(unsigned char x);
 
 // 对URL进行编码
-std::string urlEncode(const std::string& str);
+std::string urlEncode(const std::string &str);
 
 // 对URL进行解码
-std::string urlDecode(const std::string& str);
+std::string urlDecode(const std::string &str);
 
 class Defer
 {
 public:
     explicit Defer(std::function<void()> func);
     ~Defer();
-    Defer(const Defer&) = delete;
-    Defer& operator=(const Defer&) = delete;
+    Defer(const Defer &) = delete;
+    Defer &operator=(const Defer &) = delete;
 
 private:
     std::function<void()> _func;

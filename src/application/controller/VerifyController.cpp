@@ -2,14 +2,14 @@
 // 所有基础设施调用均通过接口委托
 #include "VerifyController.h"
 #include "HttpConnection.h"
-#include "IVerifyRpcClient.h"
+#include "VerifyRpcClient.h"
 #include "JsonUtil.h"
 #include "Log.h"
 #include "error_codes.h"
 
 #include <json/value.h>
 
-VerifyController::VerifyController(std::shared_ptr<IVerifyRpcClient> verifyRpc)
+VerifyController::VerifyController(std::shared_ptr<VerifyRpcClient> verifyRpc)
     : _verifyRpc(std::move(verifyRpc))
 {
 }

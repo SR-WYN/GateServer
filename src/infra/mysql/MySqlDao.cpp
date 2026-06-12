@@ -1,12 +1,11 @@
-#include "ConfigMgr.h"
 #include "MySqlDao.h"
+#include "ConfigMgr.h"
 #include "DbSession.h"
 #include "MySqlPool.h"
 #include <cppconn/connection.h>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
 #include <cppconn/statement.h>
-#include <iostream>
 
 MySqlDao::MySqlDao()
 {
@@ -39,20 +38,28 @@ bool MySqlDao::userNameExists(const std::string &name)
 {
     return DbSession::queryOne(
         *_pool, "SELECT 1 FROM user WHERE name = ? LIMIT 1",
-        [&](sql::PreparedStatement &stmt) { stmt.setString(1, name); },
-        [](sql::ResultSet &) { return true; });
+        [&](sql::PreparedStatement &stmt) {
+            stmt.setString(1, name);
+        },
+        [](sql::ResultSet &) {
+            return true;
+        });
 }
 
 bool MySqlDao::emailExists(const std::string &email)
 {
     return DbSession::queryOne(
         *_pool, "SELECT 1 FROM user WHERE email = ? LIMIT 1",
-        [&](sql::PreparedStatement &stmt) { stmt.setString(1, email); },
-        [](sql::ResultSet &) { return true; });
+        [&](sql::PreparedStatement &stmt) {
+            stmt.setString(1, email);
+        },
+        [](sql::ResultSet &) {
+            return true;
+        });
 }
 
-int MySqlDao::regUser(const std::string &name, const std::string &email,
-                      const std::string &pwd, const std::string &nick, int sex)
+int MySqlDao::regUser(const std::string &name, const std::string &email, const std::string &pwd,
+                      const std::string &nick, int sex)
 {
     int uid = -1;
     DbSession::withConn(*_pool, [&](sql::Connection &conn) {
@@ -68,7 +75,8 @@ int MySqlDao::regUser(const std::string &name, const std::string &email,
         bump->executeUpdate("UPDATE user_id SET id = id + 1");
 
         auto fetchId = std::unique_ptr<sql::Statement>(conn.createStatement());
-        auto idRes = std::unique_ptr<sql::ResultSet>(fetchId->executeQuery("SELECT id FROM user_id LIMIT 1"));
+        auto idRes = std::unique_ptr<sql::ResultSet>(
+            fetchId->executeQuery("SELECT id FROM user_id LIMIT 1"));
         if (!idRes->next())
         {
             conn.rollback();
@@ -99,18 +107,21 @@ bool MySqlDao::checkEmail(const std::string &email, const std::string &name)
 {
     return DbSession::queryOne(
         *_pool, "SELECT name FROM user WHERE email = ?",
-        [&](sql::PreparedStatement &stmt) { stmt.setString(1, email); },
-        [&](sql::ResultSet &rs) { return rs.getString("name") == name; });
+        [&](sql::PreparedStatement &stmt) {
+            stmt.setString(1, email);
+        },
+        [&](sql::ResultSet &rs) {
+            return rs.getString("name") == name;
+        });
 }
 
 bool MySqlDao::updatePwd(const std::string &email, const std::string &pwd)
 {
-    return DbSession::exec(
-               *_pool, "UPDATE user SET pwd = ? WHERE email = ?",
-               [&](sql::PreparedStatement &stmt) {
-                   stmt.setString(1, pwd);
-                   stmt.setString(2, email);
-               }) > 0;
+    return DbSession::exec(*_pool, "UPDATE user SET pwd = ? WHERE email = ?",
+                           [&](sql::PreparedStatement &stmt) {
+                               stmt.setString(1, pwd);
+                               stmt.setString(2, email);
+                           }) > 0;
 }
 
 bool MySqlDao::checkPwd(const std::string &email, const std::string &pwd, UserInfo &userInfo)
@@ -118,7 +129,9 @@ bool MySqlDao::checkPwd(const std::string &email, const std::string &pwd, UserIn
     bool matched = false;
     DbSession::queryOne(
         *_pool, "SELECT uid, name, pwd FROM user WHERE email = ?",
-        [&](sql::PreparedStatement &stmt) { stmt.setString(1, email); },
+        [&](sql::PreparedStatement &stmt) {
+            stmt.setString(1, email);
+        },
         [&](sql::ResultSet &rs) {
             if (rs.getString("pwd") != pwd)
             {

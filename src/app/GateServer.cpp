@@ -1,10 +1,10 @@
 // GateServer.cpp - 网关服务器入口
 #include "CServer.h"
 #include "ConfigMgr.h"
+#include "HttpConnection.h"
 #include "Log.h"
 #include "LogicSystem.h"
 #include "RedisMgr.h"
-#include "HttpConnection.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -32,7 +32,7 @@ int main()
 
         {
             // 读取配置中的网关端口
-            auto& config = ConfigMgr::getInstance();
+            auto &config = ConfigMgr::getInstance();
             std::string gate_port_str = config["GateServer"]["Port"];
             unsigned short gate_port = static_cast<unsigned short>(std::stoi(gate_port_str));
             Log::info(LogModule::App, "GateServer port: {}", gate_port);
@@ -41,19 +41,18 @@ int main()
             net::io_context ioc{1};
             // 注册 SIGINT/SIGTERM 信号处理，优雅关闭
             boost::asio::signal_set signals(ioc, SIGINT, SIGTERM);
-            signals.async_wait(
-                [&ioc](const boost::system::error_code& error, int signal_number)
+            signals.async_wait([&ioc](const boost::system::error_code &error, int signal_number) {
+                if (error)
                 {
-                    if (error)
-                    {
-                        Log::error(LogModule::App, "Signal error: {}", error.message());
-                        return;
-                    }
-                    Log::info(LogModule::App, "Received signal {}, stopping io_context", signal_number);
-                    ioc.stop();
-                });
+                    Log::error(LogModule::App, "Signal error: {}", error.message());
+                    return;
+                }
+                Log::info(LogModule::App, "Received signal {}, stopping io_context", signal_number);
+                ioc.stop();
+            });
 
-            // 启动 HTTP 服务器（CServer 继承 enable_shared_from_this，异步回调中需捕获自身 shared_ptr）
+            // 启动 HTTP 服务器（CServer 继承 enable_shared_from_this，异步回调中需捕获自身
+            // shared_ptr）
             std::make_shared<CServer>(ioc, gate_port)->start();
             Log::info(LogModule::App, "CServer started, entering io_context run loop");
             // 进入事件循环（阻塞，直到 ioc.stop()）
@@ -63,7 +62,7 @@ int main()
         Log::info(LogModule::App, "GateServer stopped");
         Log::shutdown();
     }
-    catch (std::exception& e)
+    catch (std::exception &e)
     {
         std::cerr << "GateServer exception: " << e.what() << std::endl;
         Log::error(LogModule::App, "GateServer exception: {}", e.what());

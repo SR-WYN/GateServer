@@ -1,14 +1,14 @@
 // StatusGrpcClient.cpp - 向 StatusServer 查询可用 ChatServer 的 gRPC 客户端实现
+#include "StatusGrpcClient.h"
 #include "ConfigMgr.h"
 #include "Log.h"
 #include "StatusConPool.h"
-#include "StatusGrpcClient.h"
 #include "error_codes.h"
 #include "utils.h"
 
 StatusGrpcClient::StatusGrpcClient()
 {
-    auto& gCfgMgr = ConfigMgr::getInstance();
+    auto &gCfgMgr = ConfigMgr::getInstance();
     std::string host = gCfgMgr["StatusServer"]["Host"];
     std::string port = gCfgMgr["StatusServer"]["Port"];
     Log::info(LogModule::Grpc, "StatusGrpcClient connecting to StatusServer at {}:{}", host, port);
@@ -31,26 +31,24 @@ GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
     if (!stub)
     {
         Log::error(LogModule::Grpc, "getChatServer: failed to get connection from pool");
-        reply.set_error(ErrorCodes::RPCFAILED);
+        reply.set_error(ErrorCodes::RPC_FAILED);
         return reply;
     }
     Status status = stub->GetChatServer(&context, request, &reply);
-    utils::Defer defer(
-        [&stub, this]()
-        {
-            _pool->returnConnection(std::move(stub));
-        });
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
     if (status.ok())
     {
-        Log::info(LogModule::Grpc, "getChatServer success: uid={}, host={}, port={}",
-                  uid, reply.host(), reply.port());
+        Log::info(LogModule::Grpc, "getChatServer success: uid={}, host={}, port={}", uid,
+                  reply.host(), reply.port());
         return reply;
     }
     else
     {
-        Log::error(LogModule::Grpc, "getChatServer RPC failed: uid={}, error_code={}, msg={}",
-                   uid, status.error_code(), status.error_message());
-        reply.set_error(ErrorCodes::RPCFAILED);
+        Log::error(LogModule::Grpc, "getChatServer RPC failed: uid={}, error_code={}, msg={}", uid,
+                   status.error_code(), status.error_message());
+        reply.set_error(ErrorCodes::RPC_FAILED);
         return reply;
     }
 }

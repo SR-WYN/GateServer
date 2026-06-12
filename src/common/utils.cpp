@@ -17,7 +17,7 @@ unsigned char utils::fromHex(unsigned char x)
         return 0;
 }
 
-std::string utils::urlEncode(const std::string& str)
+std::string utils::urlEncode(const std::string &str)
 {
     std::string strTemp = "";
     for (unsigned char c : str)
@@ -40,7 +40,7 @@ std::string utils::urlEncode(const std::string& str)
     return strTemp;
 }
 
-std::string utils::urlDecode(const std::string& str)
+std::string utils::urlDecode(const std::string &str)
 {
     std::string strTemp = "";
     size_t length = str.length();
@@ -64,8 +64,7 @@ std::string utils::urlDecode(const std::string& str)
     return strTemp;
 }
 
-utils::Defer::Defer(std::function<void()> func)
-    : _func(func)
+utils::Defer::Defer(std::function<void()> func) : _func(func)
 {
 }
 

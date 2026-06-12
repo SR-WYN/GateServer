@@ -6,7 +6,6 @@
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
 #include <functional>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -23,7 +22,9 @@ public:
         {
             return false;
         }
-        utils::Defer defer([&]() { pool.returnConnection(std::move(con)); });
+        utils::Defer defer([&]() {
+            pool.returnConnection(std::move(con));
+        });
         try
         {
             return fn(*con->_con);

@@ -10,8 +10,8 @@ public:
     using Work = boost::asio::io_context::work;
     using WorkPtr = std::unique_ptr<Work>;
     ~AsioIOServicePool();
-    AsioIOServicePool(const AsioIOServicePool&) = delete;
-    AsioIOServicePool& operator=(const AsioIOServicePool&) = delete;
+    AsioIOServicePool(const AsioIOServicePool &) = delete;
+    AsioIOServicePool &operator=(const AsioIOServicePool &) = delete;
     // 使用 round-robin 的方式返回一个 io_service
     boost::asio::io_context &getIoService();
     void stop();

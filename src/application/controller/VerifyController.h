@@ -5,13 +5,14 @@
 #include <memory>
 
 class HttpConnection;
-class IVerifyRpcClient;
+class VerifyRpcClient;
 
-class VerifyController {
+class VerifyController
+{
 public:
-    explicit VerifyController(std::shared_ptr<IVerifyRpcClient> verifyRpc);
+    explicit VerifyController(std::shared_ptr<VerifyRpcClient> verifyRpc);
     void handleGetVerifyCode(std::shared_ptr<HttpConnection> conn);
 
 private:
-    std::shared_ptr<IVerifyRpcClient> _verifyRpc;
+    std::shared_ptr<VerifyRpcClient> _verifyRpc;
 };

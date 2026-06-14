@@ -75,4 +75,35 @@ public:
     /// @param uid 用户 ID
     /// @return 是否在线
     virtual bool isOnline(int uid) = 0;
+
+    // ========== 新增用户凭证缓存方法 ==========
+
+    /// 缓存用户凭证信息
+    /// @param email 用户邮箱（作为缓存键）
+    /// @param uid 用户 ID
+    /// @param name 用户名
+    /// @param pwd_hash 密码哈希值（与 MySQL 中 pwd 字段一致）
+    /// @param ttl_seconds 过期时间（秒）
+    /// @return 是否成功
+    virtual bool cacheUserCredential(const std::string& email,
+                                      int uid,
+                                      const std::string& name,
+                                      const std::string& pwd_hash,
+                                      int ttl_seconds) = 0;
+
+    /// 获取缓存的用户凭证
+    /// @param email 用户邮箱
+    /// @param uid 输出参数，返回用户 ID
+    /// @param name 输出参数，返回用户名
+    /// @param pwd_hash 输出参数，返回密码哈希
+    /// @return 是否存在且字段完整
+    virtual bool getUserCredential(const std::string& email,
+                                    int& uid,
+                                    std::string& name,
+                                    std::string& pwd_hash) = 0;
+
+    /// 使用户凭证缓存失效（密码重置/修改时调用）
+    /// @param email 用户邮箱
+    /// @return 是否成功
+    virtual bool invalidateUserCredential(const std::string& email) = 0;
 };

@@ -95,6 +95,10 @@ void UserController::handleRegister(std::shared_ptr<HttpConnection> conn)
 
     // 缓存用户信息 — 通过接口调用
     _userCache->setUserEmail(name, email);
+
+    // 预缓存用户凭证，使首次登录即可走 Redis
+    _userCache->cacheUserCredential(email, uid, name, passwd, USER_CRED_TTL_SECONDS);
+
     Log::info(LogModule::Http, "Register success: uid={}, name={}, email={}", uid, name, email);
 
     Json::Value root;
@@ -123,27 +127,62 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
     auto pwd = src_root["passwd"].asString();
     Log::info(LogModule::Http, "Login request for email: {}", email);
 
-    // 1. 校验密码 — 通过接口调用（必须查 MySQL，无法缓存）
     UserInfo userInfo;
-    if (!_userDao->checkPwd(email, pwd, userInfo))
+    bool from_cache = false;
+
+    // 1. 优先尝试从 Redis 获取用户凭证并校验密码
+    int cached_uid = 0;
+    std::string cached_name;
+    std::string cached_pwd_hash;
+    if (_userCache->getUserCredential(email, cached_uid, cached_name, cached_pwd_hash))
     {
-        Log::warn(LogModule::Http, "Login: password mismatch for {}", email);
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::PASSWD_NOT_MATCH);
-        return;
+        if (cached_pwd_hash == pwd)
+        {
+            userInfo.uid = cached_uid;
+            userInfo.name = cached_name;
+            userInfo.email = email;
+            userInfo.pwd = cached_pwd_hash;
+            from_cache = true;
+
+            Log::info(LogModule::Http, "Login credential cache hit: uid={}, email={}",
+                      cached_uid, email);
+        }
+        else
+        {
+            Log::warn(LogModule::Http, "Login: password mismatch (Redis cache) for {}", email);
+            JsonUtil::makeErrorResponse(conn, ErrorCodes::PASSWD_NOT_MATCH);
+            return;
+        }
     }
 
-    // 2. 尝试从 Redis 获取缓存会话
+    // 2. Redis 缓存未命中，回源 MySQL 校验密码并获取用户信息
+    if (!from_cache)
+    {
+        if (!_userDao->checkPwd(email, pwd, userInfo))
+        {
+            Log::warn(LogModule::Http, "Login: password mismatch (MySQL) for {}", email);
+            JsonUtil::makeErrorResponse(conn, ErrorCodes::PASSWD_NOT_MATCH);
+            return;
+        }
+
+        // 3. MySQL 校验成功，将用户凭证写入 Redis 缓存
+        _userCache->cacheUserCredential(email, userInfo.uid, userInfo.name, pwd,
+                                        USER_CRED_TTL_SECONDS);
+        Log::info(LogModule::Http, "User credential cached for {}", email);
+    }
+
+    // 4. 原有会话缓存逻辑保持不变
     auto cachedSession = _userCache->getSession(userInfo.uid);
 
     if (cachedSession)
     {
-        // 2.1 缓存命中 - 检查 Token 是否过期
+        // 4.1 会话缓存命中 - 检查 Token 是否过期
         if (!cachedSession->_token.empty() && cachedSession->_expire_at > getCurrentTimestamp())
         {
             // Token 有效，延长缓存时间并直接返回
             _userCache->extendSession(userInfo.uid, SESSION_TTL_SECONDS);
 
-            Log::info(LogModule::Http, "Login cache hit: uid={}, email={}, host={}:{}",
+            Log::info(LogModule::Http, "Login session cache hit: uid={}, email={}, host={}:{}",
                       userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port);
 
             Json::Value root;
@@ -161,7 +200,7 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
         _userCache->removeSession(userInfo.uid);
     }
 
-    // 2.2 缓存未命中或已过期 - 调用 StatusServer
+    // 4.2 会话缓存未命中或已过期 - 调用 StatusServer
     auto reply = _statusRpc->getChatServer(userInfo.uid);
     if (reply.error())
     {
@@ -170,7 +209,7 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
         return;
     }
 
-    // 3. 写入 Redis 缓存
+    // 5. 写入 Redis 会话缓存
     UserSession session;
     session._uid = userInfo.uid;
     session._token = reply.token();
@@ -183,8 +222,8 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
 
     _userCache->saveSession(session, SESSION_TTL_SECONDS);
 
-    Log::info(LogModule::Http, "Login cache miss: uid={}, email={}, host={}:{}", userInfo.uid,
-              email, reply.host(), reply.port());
+    Log::info(LogModule::Http, "Login session cache miss: uid={}, email={}, host={}:{}",
+              userInfo.uid, email, reply.host(), reply.port());
 
     Json::Value root;
     root["error"] = ErrorCodes::SUCCESS;
@@ -244,6 +283,10 @@ void UserController::handleResetPwd(std::shared_ptr<HttpConnection> conn)
         JsonUtil::makeErrorResponse(conn, ErrorCodes::PASSWD_UP_FAILED);
         return;
     }
+
+    // 使 Redis 用户凭证缓存失效
+    _userCache->invalidateUserCredential(email);
+    Log::info(LogModule::Http, "User credential cache invalidated for {}", email);
 
     Log::info(LogModule::Http, "ResetPwd success: email={}", email);
 

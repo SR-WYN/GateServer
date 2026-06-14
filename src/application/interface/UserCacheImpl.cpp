@@ -212,6 +212,71 @@ bool UserCacheImpl::isOnline(int uid)
     }
 }
 
+// ========== 新增用户凭证缓存方法 ==========
+
+bool UserCacheImpl::cacheUserCredential(const std::string& email,
+                                         int uid,
+                                         const std::string& name,
+                                         const std::string& pwd_hash,
+                                         int ttl_seconds)
+{
+    try {
+        auto& redis = RedisMgr::getInstance();
+        std::string key = userCredKey(email);
+
+        redis.hSet(key, "uid", std::to_string(uid));
+        redis.hSet(key, "name", name);
+        redis.hSet(key, "pwd_hash", pwd_hash);
+        redis.expire(key, ttl_seconds);
+
+        return true;
+    }
+    catch (const std::exception& e) {
+        LOGE(LogModule::Redis, "Failed to cache user credential for {}: {}", email, e.what());
+        return false;
+    }
+}
+
+bool UserCacheImpl::getUserCredential(const std::string& email,
+                                       int& uid,
+                                       std::string& name,
+                                       std::string& pwd_hash)
+{
+    try {
+        auto& redis = RedisMgr::getInstance();
+        std::string key = userCredKey(email);
+
+        std::map<std::string, std::string> fields;
+        if (!redis.hGetAll(key, fields) || fields.empty()) {
+            return false;
+        }
+
+        uid = std::stoi(fields["uid"]);
+        name = fields["name"];
+        pwd_hash = fields["pwd_hash"];
+
+        return !name.empty() && !pwd_hash.empty();
+    }
+    catch (const std::exception& e) {
+        LOGE(LogModule::Redis, "Failed to get user credential for {}: {}", email, e.what());
+        return false;
+    }
+}
+
+bool UserCacheImpl::invalidateUserCredential(const std::string& email)
+{
+    try {
+        auto& redis = RedisMgr::getInstance();
+        redis.del(userCredKey(email));
+        return true;
+    }
+    catch (const std::exception& e) {
+        LOGE(LogModule::Redis, "Failed to invalidate user credential for {}: {}", email,
+             e.what());
+        return false;
+    }
+}
+
 // ========== 私有辅助方法 ==========
 
 std::string UserCacheImpl::sessionKey(int uid)
@@ -237,4 +302,9 @@ std::string UserCacheImpl::tokenKey(const std::string &token)
 std::string UserCacheImpl::onlineUsersKey()
 {
     return ONLINE_USERS_KEY;
+}
+
+std::string UserCacheImpl::userCredKey(const std::string& email)
+{
+    return std::string(USER_CRED_PREFIX) + email;
 }

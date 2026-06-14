@@ -36,6 +36,7 @@ private:
     // 配置常量
     static constexpr int SESSION_TTL_SECONDS = 86400;      // 会话缓存 24 小时
     static constexpr int TOKEN_VALIDITY_SECONDS = 7200;    // Token 有效期 2 小时
+    static constexpr int USER_CRED_TTL_SECONDS = 604800;   // 用户凭证缓存 7 天
 
     /// 获取当前时间戳（秒）
     static int64_t getCurrentTimestamp();

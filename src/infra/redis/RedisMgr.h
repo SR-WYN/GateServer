@@ -17,8 +17,10 @@ public:
     // 基础 KV 操作
     bool get(const std::string &key, std::string &value);
     bool set(const std::string &key, const std::string &value);
+    bool set(const std::string &key, const std::string &value, int ttl_seconds);
     bool del(const std::string &key);
     bool existsKey(const std::string &key);
+    bool expire(const std::string &key, int ttl_seconds);
 
     // Hash 操作
     bool hSet(const std::string &key, const std::string &field, const std::string &value);
@@ -37,6 +39,10 @@ public:
     bool sAdd(const std::string &key, const std::string &member);
     bool sRem(const std::string &key, const std::string &member);
     bool sMembers(const std::string &key, std::vector<std::string> &members);
+    bool sIsMember(const std::string &key, const std::string &member);
+
+    // Pub/Sub 操作
+    bool publish(const std::string &channel, const std::string &message);
 
     void close();
 

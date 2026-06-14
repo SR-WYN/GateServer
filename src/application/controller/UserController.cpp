@@ -1,15 +1,17 @@
 // UserController.cpp - 用户注册、登录、重置密码业务实现
 // 所有基础设施调用均通过接口委托，不直接依赖具体实现
 #include "UserController.h"
+
 #include "HttpConnection.h"
+#include "JsonUtil.h"
+#include "Log.h"
 #include "StatusRpcClient.h"
 #include "UserCache.h"
 #include "UserDao.h"
 #include "VerifyCodeCache.h"
-#include "JsonUtil.h"
-#include "Log.h"
 #include "error_codes.h"
 
+#include <chrono>
 #include <json/value.h>
 
 UserController::UserController(std::shared_ptr<UserDao> userDao,
@@ -121,7 +123,7 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
     auto pwd = src_root["passwd"].asString();
     Log::info(LogModule::Http, "Login request for email: {}", email);
 
-    // 校验密码 — 通过接口调用
+    // 1. 校验密码 — 通过接口调用（必须查 MySQL，无法缓存）
     UserInfo userInfo;
     if (!_userDao->checkPwd(email, pwd, userInfo))
     {
@@ -130,7 +132,36 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
         return;
     }
 
-    // 获取 ChatServer — 通过接口调用
+    // 2. 尝试从 Redis 获取缓存会话
+    auto cachedSession = _userCache->getSession(userInfo.uid);
+
+    if (cachedSession)
+    {
+        // 2.1 缓存命中 - 检查 Token 是否过期
+        if (!cachedSession->_token.empty() && cachedSession->_expire_at > getCurrentTimestamp())
+        {
+            // Token 有效，延长缓存时间并直接返回
+            _userCache->extendSession(userInfo.uid, SESSION_TTL_SECONDS);
+
+            Log::info(LogModule::Http, "Login cache hit: uid={}, email={}, host={}:{}",
+                      userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port);
+
+            Json::Value root;
+            root["error"] = ErrorCodes::SUCCESS;
+            root["email"] = email;
+            root["uid"] = userInfo.uid;
+            root["token"] = cachedSession->_token;
+            root["host"] = cachedSession->_chat_host;
+            root["port"] = cachedSession->_chat_port;
+            JsonUtil::makeJsonResponse(conn, root);
+            return;
+        }
+
+        // Token 已过期，删除缓存
+        _userCache->removeSession(userInfo.uid);
+    }
+
+    // 2.2 缓存未命中或已过期 - 调用 StatusServer
     auto reply = _statusRpc->getChatServer(userInfo.uid);
     if (reply.error())
     {
@@ -139,11 +170,24 @@ void UserController::handleLogin(std::shared_ptr<HttpConnection> conn)
         return;
     }
 
-    Log::info(LogModule::Http, "Login success: uid={}, email={}, host={}:{}", userInfo.uid, email,
-              reply.host(), reply.port());
+    // 3. 写入 Redis 缓存
+    UserSession session;
+    session._uid = userInfo.uid;
+    session._token = reply.token();
+    session._email = email;
+    session._user_name = userInfo.name;
+    session._chat_host = reply.host();
+    session._chat_port = reply.port();
+    session._login_time = getCurrentTimestamp();
+    session._expire_at = session._login_time + TOKEN_VALIDITY_SECONDS;
+
+    _userCache->saveSession(session, SESSION_TTL_SECONDS);
+
+    Log::info(LogModule::Http, "Login cache miss: uid={}, email={}, host={}:{}", userInfo.uid,
+              email, reply.host(), reply.port());
 
     Json::Value root;
-    root["error"] = 0;
+    root["error"] = ErrorCodes::SUCCESS;
     root["email"] = email;
     root["uid"] = userInfo.uid;
     root["token"] = reply.token();
@@ -209,4 +253,22 @@ void UserController::handleResetPwd(std::shared_ptr<HttpConnection> conn)
     root["user"] = name;
     root["passwd"] = pwd;
     JsonUtil::makeJsonResponse(conn, root);
+}
+
+void UserController::handleUserOffline(int uid)
+{
+    Log::info(LogModule::Http, "User offline notified, uid={}", uid);
+
+    // 清理 Redis 缓存
+    if (_userCache->isOnline(uid))
+    {
+        _userCache->removeSession(uid);
+        Log::info(LogModule::Http, "Session cache removed for uid={}", uid);
+    }
+}
+
+int64_t UserController::getCurrentTimestamp()
+{
+    using namespace std::chrono;
+    return duration_cast<seconds>(system_clock::now().time_since_epoch()).count();
 }

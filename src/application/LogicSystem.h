@@ -24,6 +24,9 @@ public:
     void regPost(std::string, HttpHandler);
     bool handlePost(std::string, std::shared_ptr<HttpConnection>);
 
+    /// 获取用户控制器（供 gRPC 服务使用）
+    std::shared_ptr<UserController> getUserController() const;
+
 private:
     LogicSystem();
     std::map<std::string, HttpHandler> _post_handlers;

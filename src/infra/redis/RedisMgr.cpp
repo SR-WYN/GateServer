@@ -53,6 +53,31 @@ bool RedisMgr::set(const std::string &key, const std::string &value)
     }
 }
 
+bool RedisMgr::set(const std::string &key, const std::string &value, int ttl_seconds)
+{
+    try
+    {
+        _redis->set(key, value, std::chrono::seconds(ttl_seconds));
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+bool RedisMgr::expire(const std::string &key, int ttl_seconds)
+{
+    try
+    {
+        return _redis->expire(key, std::chrono::seconds(ttl_seconds));
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
 bool RedisMgr::del(const std::string &key)
 {
     try
@@ -224,6 +249,31 @@ bool RedisMgr::sMembers(const std::string &key, std::vector<std::string> &member
     {
         members.clear();
         _redis->smembers(key, std::back_inserter(members));
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+bool RedisMgr::sIsMember(const std::string &key, const std::string &member)
+{
+    try
+    {
+        return _redis->sismember(key, member);
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+bool RedisMgr::publish(const std::string &channel, const std::string &message)
+{
+    try
+    {
+        _redis->publish(channel, message);
         return true;
     }
     catch (...)

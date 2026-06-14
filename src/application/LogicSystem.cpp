@@ -90,6 +90,11 @@ LogicSystem::LogicSystem()
               _get_handlers.size(), _post_handlers.size());
 }
 
+std::shared_ptr<UserController> LogicSystem::getUserController() const
+{
+    return _userController;
+}
+
 bool LogicSystem::handleGet(std::string path, std::shared_ptr<HttpConnection> con)
 {
     auto it = _get_handlers.find(path);

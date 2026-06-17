@@ -33,6 +33,16 @@ add_executable(${PROJECT_NAME}
     ${PROTO_SRCS}
 )
 
+# 固定可执行文件输出到 build 根目录，与 launch.json 保持一致
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
+)
+
+# 确保 proto 文件先生成，再编译可执行文件
+add_dependencies(${PROJECT_NAME} gateserver_proto_gen)
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
 
 # gs_net 中的 HttpConnection 依赖 LogicSystem；静态链接顺序在 gs_net 之后放 gs_application

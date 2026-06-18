@@ -9,14 +9,12 @@
 class UserDaoImpl : public UserDao
 {
 public:
-    int regUser(const std::string &name, const std::string &email,
-                const std::string &pwd, const std::string &nick = "",
-                int sex = 0) override;
+    int regUser(const std::string &name, const std::string &email, const std::string &pwd,
+                const std::string &nick = "", int sex = 0) override;
 
     bool userNameExists(const std::string &name) override;
     bool emailExists(const std::string &email) override;
     bool checkEmail(const std::string &email, const std::string &name) override;
     bool updatePwd(const std::string &email, const std::string &pwd) override;
-    bool checkPwd(const std::string &email, const std::string &pwd,
-                  UserInfo &userInfo) override;
+    bool checkPwd(const std::string &email, const std::string &pwd, UserInfo &userInfo) override;
 };

@@ -25,16 +25,11 @@ public:
     bool isOnline(int uid) override;
 
     // ========== 新增用户凭证缓存方法 ==========
-    bool cacheUserCredential(const std::string& email,
-                              int uid,
-                              const std::string& name,
-                              const std::string& pwd_hash,
-                              int ttl_seconds) override;
-    bool getUserCredential(const std::string& email,
-                            int& uid,
-                            std::string& name,
-                            std::string& pwd_hash) override;
-    bool invalidateUserCredential(const std::string& email) override;
+    bool cacheUserCredential(const std::string &email, int uid, const std::string &name,
+                             const std::string &pwd_hash, int ttl_seconds) override;
+    bool getUserCredential(const std::string &email, int &uid, std::string &name,
+                           std::string &pwd_hash) override;
+    bool invalidateUserCredential(const std::string &email) override;
 
 private:
     static std::string sessionKey(int uid);
@@ -50,5 +45,5 @@ private:
     static constexpr char ONLINE_USERS_KEY[] = "gate:online_users";
     static constexpr char USER_CRED_PREFIX[] = "gate:user_cred:";
 
-    static std::string userCredKey(const std::string& email);
+    static std::string userCredKey(const std::string &email);
 };

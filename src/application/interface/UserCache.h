@@ -7,7 +7,8 @@
 #include <string>
 
 /// 用户会话信息结构体
-struct UserSession {
+struct UserSession
+{
     int _uid = 0;
     std::string _token;
     std::string _email;
@@ -85,11 +86,8 @@ public:
     /// @param pwd_hash 密码哈希值（与 MySQL 中 pwd 字段一致）
     /// @param ttl_seconds 过期时间（秒）
     /// @return 是否成功
-    virtual bool cacheUserCredential(const std::string& email,
-                                      int uid,
-                                      const std::string& name,
-                                      const std::string& pwd_hash,
-                                      int ttl_seconds) = 0;
+    virtual bool cacheUserCredential(const std::string &email, int uid, const std::string &name,
+                                     const std::string &pwd_hash, int ttl_seconds) = 0;
 
     /// 获取缓存的用户凭证
     /// @param email 用户邮箱
@@ -97,13 +95,11 @@ public:
     /// @param name 输出参数，返回用户名
     /// @param pwd_hash 输出参数，返回密码哈希
     /// @return 是否存在且字段完整
-    virtual bool getUserCredential(const std::string& email,
-                                    int& uid,
-                                    std::string& name,
-                                    std::string& pwd_hash) = 0;
+    virtual bool getUserCredential(const std::string &email, int &uid, std::string &name,
+                                   std::string &pwd_hash) = 0;
 
     /// 使用户凭证缓存失效（密码重置/修改时调用）
     /// @param email 用户邮箱
     /// @return 是否成功
-    virtual bool invalidateUserCredential(const std::string& email) = 0;
+    virtual bool invalidateUserCredential(const std::string &email) = 0;
 };

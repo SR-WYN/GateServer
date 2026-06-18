@@ -4,27 +4,23 @@ set_source_files_properties(${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 
 add_library(gateserver_includes INTERFACE)
 target_include_directories(gateserver_includes INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/common
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
-    ${CMAKE_CURRENT_SOURCE_DIR}/net
     ${CMAKE_CURRENT_SOURCE_DIR}/application
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/common
-    ${CMAKE_CURRENT_SOURCE_DIR}/application/controller
     ${CMAKE_CURRENT_SOURCE_DIR}/application/interface
+    ${CMAKE_CURRENT_SOURCE_DIR}/application/impl
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/base
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/log
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/config
-    ${CMAKE_CURRENT_SOURCE_DIR}/infra/redis
-    ${CMAKE_CURRENT_SOURCE_DIR}/infra/mysql
     ${CMAKE_CURRENT_SOURCE_DIR}/infra/grpc
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/mysql
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/redis
+    ${CMAKE_CURRENT_SOURCE_DIR}/infra/net
     ${PROTO_GEN_DIR}
 )
 
-add_subdirectory(common)
 add_subdirectory(domain)
-add_subdirectory(infra/config)
-add_subdirectory(infra/redis)
-add_subdirectory(infra/mysql)
-add_subdirectory(infra/grpc)
-add_subdirectory(net)
+add_subdirectory(infra)
 add_subdirectory(application)
 add_subdirectory(app)
 
@@ -45,17 +41,11 @@ add_dependencies(${PROJECT_NAME} gateserver_proto_gen)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
 
-# gs_net 中的 HttpConnection 依赖 LogicSystem；静态链接顺序在 gs_net 之后放 gs_application
 target_link_libraries(${PROJECT_NAME} PRIVATE
     gateserver_includes
     gateserver_app_dir
-    gs_net
     gs_application
-    gs_common
-    gs_config
-    gs_redis
-    gs_mysql
-    gs_grpc
+    gs_infra
     Boost::system
     Boost::thread
     Boost::filesystem

@@ -1,10 +1,13 @@
 // HttpConnection.cpp - HTTP 连接处理实现，异步读写 + 请求分发
 #include "HttpConnection.h"
+
 #include "Log.h"
-#include "LogicSystem.h"
+#include "LogModule.h"
 #include "utils.h"
 
-HttpConnection::HttpConnection(boost::asio::io_context &ioc) : _socket(ioc)
+HttpConnection::HttpConnection(boost::asio::io_context &ioc, HttpGetHandler getHandler,
+                               HttpPostHandler postHandler)
+    : _socket(ioc), _getHandler(std::move(getHandler)), _postHandler(std::move(postHandler))
 {
 }
 
@@ -41,44 +44,44 @@ void HttpConnection::preParseGetParam()
     // 提取 URI
     auto uri = _request.target();
     // 查找查询字符串的开始位置（即 '?' 的位置）
-    auto query_pos = uri.find('?');
-    if (query_pos == std::string::npos)
+    auto queryPos = uri.find('?');
+    if (queryPos == std::string::npos)
     {
         _get_url = uri;
         return;
     }
 
-    _get_url = uri.substr(0, query_pos);
-    std::string query_string = uri.substr(query_pos + 1);
+    _get_url = uri.substr(0, queryPos);
+    std::string queryString = uri.substr(queryPos + 1);
     std::string key;
     std::string value;
     size_t pos = 0;
-    while ((pos = query_string.find('&')) != std::string::npos)
+    while ((pos = queryString.find('&')) != std::string::npos)
     {
-        auto pair = query_string.substr(0, pos);
-        size_t eq_pos = pair.find('=');
-        if (eq_pos != std::string::npos)
+        auto pair = queryString.substr(0, pos);
+        size_t eqPos = pair.find('=');
+        if (eqPos != std::string::npos)
         {
-            key = utils::urlDecode(pair.substr(0, eq_pos));
-            value = utils::urlDecode(pair.substr(eq_pos + 1));
+            key = utils::urlDecode(pair.substr(0, eqPos));
+            value = utils::urlDecode(pair.substr(eqPos + 1));
             _get_params[key] = value;
         }
-        query_string.erase(0, pos + 1);
+        queryString.erase(0, pos + 1);
     }
     // 处理最后一个参数对（如果没有 & 分隔符）
-    if (!query_string.empty())
+    if (!queryString.empty())
     {
-        size_t eq_pos = query_string.find('=');
-        if (eq_pos != std::string::npos)
+        size_t eqPos = queryString.find('=');
+        if (eqPos != std::string::npos)
         {
-            key = utils::urlDecode(query_string.substr(0, eq_pos));
-            value = utils::urlDecode(query_string.substr(eq_pos + 1));
+            key = utils::urlDecode(queryString.substr(0, eqPos));
+            value = utils::urlDecode(queryString.substr(eqPos + 1));
             _get_params[key] = value;
         }
     }
 }
 
-// 根据 HTTP method 分发请求到 LogicSystem，处理 GET/POST
+// 根据 HTTP method 分发 GET/POST 请求
 void HttpConnection::handleReq()
 {
     // 设置版本
@@ -88,7 +91,7 @@ void HttpConnection::handleReq()
     {
         preParseGetParam();
         Log::info(LogModule::Http, "Handle GET: {}", _get_url);
-        bool success = LogicSystem::getInstance().handleGet(_get_url, shared_from_this());
+        bool success = _getHandler(_get_url, shared_from_this());
         if (!success)
         {
             Log::warn(LogModule::Http, "GET url not found: {}", _get_url);
@@ -107,7 +110,7 @@ void HttpConnection::handleReq()
     if (_request.method() == http::verb::post)
     {
         Log::info(LogModule::Http, "Handle POST: {}", _request.target());
-        bool success = LogicSystem::getInstance().handlePost(_request.target(), shared_from_this());
+        bool success = _postHandler(_request.target(), shared_from_this());
         if (!success)
         {
             Log::warn(LogModule::Http, "POST url not found: {}", _request.target());

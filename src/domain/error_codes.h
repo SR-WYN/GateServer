@@ -6,7 +6,7 @@ enum ErrorCodes
 {
     SUCCESS = 0,              // 成功
     ERROR_JSON = 1001,        // JSON 解析错误
-    RPC_FAILED = 1002,         // RPC 请求错误
+    RPC_FAILED = 1002,        // RPC 请求错误
     VERIFY_EXPIRED = 1003,    // 验证码过期
     VERIFY_CODE_ERROR = 1004, // 验证码错误
     USER_EXIST = 1005,        // 用户已存在

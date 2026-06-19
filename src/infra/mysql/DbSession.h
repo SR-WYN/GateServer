@@ -6,6 +6,7 @@
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -15,10 +16,11 @@ public:
     using BindFn = std::function<void(sql::PreparedStatement &)>;
 
     template <typename Fn>
-    static bool withConn(MySqlPool &pool, Fn &&fn)
+    static bool withConn(Fn &&fn)
     {
+        auto &pool = MySqlPool::getInstance();
         auto con = pool.getConnection();
-        if (!con || !con->_con)
+        if (!con)
         {
             return false;
         }
@@ -35,10 +37,10 @@ public:
         }
     }
 
-    static int exec(MySqlPool &pool, const std::string &sql, BindFn bind = nullptr)
+    static int exec(const std::string &sql, BindFn bind = nullptr)
     {
         int rows = -1;
-        withConn(pool, [&](sql::Connection &conn) {
+        withConn([&](sql::Connection &conn) {
             auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(sql));
             if (bind)
             {
@@ -51,9 +53,9 @@ public:
     }
 
     template <typename MapFn>
-    static bool queryOne(MySqlPool &pool, const std::string &sql, BindFn bind, MapFn &&map)
+    static bool queryOne(const std::string &sql, BindFn bind, MapFn &&map)
     {
-        return withConn(pool, [&](sql::Connection &conn) {
+        return withConn([&](sql::Connection &conn) {
             auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(sql));
             if (bind)
             {
@@ -65,6 +67,25 @@ public:
                 return false;
             }
             return map(*rs);
+        });
+    }
+
+    template <typename MapFn, typename T>
+    static bool queryAll(const std::string &sql, BindFn bind, MapFn &&map, std::vector<T> &out)
+    {
+        out.clear();
+        return withConn([&](sql::Connection &conn) {
+            auto stmt = std::unique_ptr<sql::PreparedStatement>(conn.prepareStatement(sql));
+            if (bind)
+            {
+                bind(*stmt);
+            }
+            auto rs = std::unique_ptr<sql::ResultSet>(stmt->executeQuery());
+            while (rs->next())
+            {
+                out.push_back(map(*rs));
+            }
+            return true;
         });
     }
 };

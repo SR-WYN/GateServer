@@ -1,8 +1,7 @@
 add_library(gs_mysql STATIC
     MySqlPool.cpp
-    MysqlMgr.cpp
-    MySqlDao.cpp
-    UserDaoImpl.cpp
+    MySqlMgr.cpp
+    MySqlMgr.h
 )
 
 target_link_libraries(gs_mysql PUBLIC

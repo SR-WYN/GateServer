@@ -1,9 +1,11 @@
 add_library(gs_application STATIC
+    interface/UserDao.h
     interface/UserService.h
     interface/VerifyService.h
     interface/UserController.h
     interface/VerifyController.h
     interface/LogicSystem.h
+    impl/UserDaoImpl.cpp
     impl/UserServiceImpl.cpp
     impl/VerifyServiceImpl.cpp
     impl/UserControllerImpl.cpp

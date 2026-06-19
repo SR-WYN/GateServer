@@ -9,6 +9,8 @@
 #include "LogModule.h"
 #include "LogicSystem.h"
 #include "LogicSystemImpl.h"
+#include "MySqlMgr.h"
+#include "MySqlPool.h"
 #include "RedisMgr.h"
 #include "StatusRpcClient.h"
 #include "StatusRpcClientImpl.h"
@@ -55,8 +57,10 @@ int main()
         ConfigMgr::getInstance();
         LOGI(LogModule::App, "GateServer starting");
 
-        // 1. 创建基础设施适配器
-        auto userDao = std::make_shared<UserDaoImpl>();
+        // 1. 初始化 MySQL 连接池并创建 DAO
+        MySqlPool::initOnce();
+        auto mysql_mgr = std::make_shared<MySqlMgr>();
+        auto userDao = std::make_shared<UserDaoImpl>(mysql_mgr);
         auto userCache = std::make_shared<UserCacheImpl>();
         auto verifyCache = std::make_shared<VerifyCodeCacheImpl>();
         auto statusRpc = std::make_shared<StatusRpcClientImpl>();

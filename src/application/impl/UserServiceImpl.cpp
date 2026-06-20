@@ -81,8 +81,9 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
     return ErrorCodes::SUCCESS;
 }
 
-int UserServiceImpl::loginUser(const std::string &email, const std::string &passwd,
-                               std::string &outToken, std::string &outHost, std::string &outPort)
+int UserServiceImpl::loginUser(const std::string &email, const std::string &passwd, int &outUid,
+                               std::string &outToken, std::string &outHost,
+                               std::string &outPort)
 {
     LOGI(LogModule::Http, "UserServiceImpl::loginUser | email={}", email);
 
@@ -140,6 +141,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
             LOGI(LogModule::Http, "Login session cache hit: uid={}, email={}, host={}:{}",
                  userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port);
 
+            outUid = userInfo.uid;
             outToken = cachedSession->_token;
             outHost = cachedSession->_chat_host;
             outPort = cachedSession->_chat_port;
@@ -174,6 +176,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
     LOGI(LogModule::Http, "Login session cache miss: uid={}, email={}, host={}:{}", userInfo.uid,
          email, reply.host(), reply.port());
 
+    outUid = userInfo.uid;
     outToken = reply.token();
     outHost = reply.host();
     outPort = reply.port();

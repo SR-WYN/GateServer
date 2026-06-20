@@ -19,9 +19,10 @@ public:
                              UserInfo &outUser) = 0;
 
     /// 用户登录
-    /// @return 错误码，成功时 outToken / outHost / outPort 被填充
-    virtual int loginUser(const std::string &email, const std::string &passwd,
-                          std::string &outToken, std::string &outHost, std::string &outPort) = 0;
+    /// @return 错误码，成功时 outUid / outToken / outHost / outPort 被填充
+    virtual int loginUser(const std::string &email, const std::string &passwd, int &outUid,
+                          std::string &outToken, std::string &outHost,
+                          std::string &outPort) = 0;
 
     /// 重置密码
     /// @return 错误码（SUCCESS 表示成功）

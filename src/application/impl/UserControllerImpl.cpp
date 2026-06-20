@@ -70,10 +70,11 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
     auto email = srcRoot["email"].asString();
     auto passwd = srcRoot["passwd"].asString();
 
+    int uid = 0;
     std::string token;
     std::string host;
     std::string port;
-    int err = _userService->loginUser(email, passwd, token, host, port);
+    int err = _userService->loginUser(email, passwd, uid, token, host, port);
     if (err != ErrorCodes::SUCCESS)
     {
         JsonUtil::makeErrorResponse(conn, err);
@@ -82,6 +83,7 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
 
     Json::Value root;
     root["error"] = ErrorCodes::SUCCESS;
+    root["uid"] = uid;
     root["email"] = email;
     root["token"] = token;
     root["host"] = host;

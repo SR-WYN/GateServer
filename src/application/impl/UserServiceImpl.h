@@ -20,8 +20,9 @@ public:
                      const std::string &name, const std::string &passwd, const std::string &confirm,
                      const std::string &nick, int sex, UserInfo &outUser) override;
 
-    int loginUser(const std::string &email, const std::string &passwd, std::string &outToken,
-                  std::string &outHost, std::string &outPort) override;
+    int loginUser(const std::string &email, const std::string &passwd, int &outUid,
+                  std::string &outToken, std::string &outHost,
+                  std::string &outPort) override;
 
     int resetPassword(const std::string &email, const std::string &verifyCode,
                       const std::string &name, const std::string &newPwd) override;

@@ -54,6 +54,10 @@ int main()
 {
     try
     {
+        if (!Log::init("GateServer", ConfigMgr::getInstance().getLogConfig()))
+        {
+            return 0;
+        }
         ConfigMgr::getInstance();
         LOGI(LogModule::App, "GateServer starting");
 

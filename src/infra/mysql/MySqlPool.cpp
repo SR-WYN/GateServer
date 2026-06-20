@@ -1,12 +1,12 @@
 #include "MySqlPool.h"
 #include "ConfigMgr.h"
 #include "utils.h"
+#include <boost/asio/steady_timer.hpp>
 #include <cppconn/exception.h>
 #include <cppconn/statement.h>
 #include <memory>
 #include <mutex>
 #include <mysql_driver.h>
-#include <thread>
 
 SqlConnection::SqlConnection(sql::Connection *con, int64_t lasttime)
     : _con(con), _last_oper_time(lasttime)
@@ -50,33 +50,39 @@ void MySqlPool::initPool(const std::string &url, const std::string &user, const 
             sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
             auto *con = driver->connect(_url, _user, _pass);
             con->setSchema(_schema);
-            // 获取当前时间戳
             auto currentTime = std::chrono::system_clock::now().time_since_epoch();
-            // 将时间戳转换为秒
             long long timestamp =
                 std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
             _pool.push(std::make_unique<SqlConnection>(con, timestamp));
         }
-        _check_thread = std::thread([this]() {
-            while (!_stop)
-            {
-                checkConnection();
-                std::this_thread::sleep_for(std::chrono::seconds(60));
-            }
-        });
     }
     catch (sql::SQLException &e)
     {
     }
 }
 
+void MySqlPool::startHealthCheck(boost::asio::io_context &ioc)
+{
+    auto timer = std::make_shared<boost::asio::steady_timer>(ioc);
+
+    std::function<void()> doCheck;
+    doCheck = [this, timer, &doCheck]() {
+        if (_stop)
+            return;
+        checkConnection();
+        timer->expires_after(std::chrono::seconds(60));
+        timer->async_wait([&doCheck](const boost::system::error_code &ec) {
+            if (!ec)
+                doCheck();
+        });
+    };
+    // 立即执行第一次检查，然后每 60s 一次
+    doCheck();
+}
+
 MySqlPool::~MySqlPool()
 {
     close();
-    if (_check_thread.joinable())
-    {
-        _check_thread.join();
-    }
 
     std::lock_guard<std::mutex> lock(_mutex);
     while (!_pool.empty())
@@ -101,7 +107,7 @@ std::unique_ptr<SqlConnection> MySqlPool::getConnection()
         return nullptr;
     }
 
-    std::unique_ptr<SqlConnection> con(std::move(_pool.front()));
+    auto con = std::move(_pool.front());
     _pool.pop();
     return con;
 }
@@ -113,98 +119,63 @@ void MySqlPool::returnConnection(std::unique_ptr<SqlConnection> con)
     {
         return;
     }
+    auto currentTime = std::chrono::system_clock::now().time_since_epoch();
+    con->_last_oper_time =
+        std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
     _pool.push(std::move(con));
-    _cond.notify_one();
 }
 
 void MySqlPool::close()
 {
-    std::lock_guard<std::mutex> lock(_mutex);
-    _stop = true;
+    _stop.store(true);
     _cond.notify_all();
 }
 
 void MySqlPool::checkConnection()
 {
-    size_t targetCount;
+    std::lock_guard<std::mutex> lock(_mutex);
+    int poolSize = _pool.size();
+    for (int i = 0; i < poolSize; i++)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
-        targetCount = _pool.size();
-    }
-
-    auto now = std::chrono::system_clock::now().time_since_epoch();
-    long long timestamp = std::chrono::duration_cast<std::chrono::seconds>(now).count();
-
-    for (size_t i = 0; i < targetCount; ++i)
-    {
-        std::unique_ptr<SqlConnection> con;
+        auto con = std::move(_pool.front());
+        _pool.pop();
+        auto currentTime = std::chrono::system_clock::now().time_since_epoch();
+        long long timestamp =
+            std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
+        if (timestamp - con->_last_oper_time < 60)
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_pool.empty())
-                break;
-            con = std::move(_pool.front());
-            _pool.pop();
+            _pool.push(std::move(con));
+            continue;
         }
-
-        bool healthy = true;
-        utils::Defer defer([&] {
-            if (healthy && con)
-            {
-                std::lock_guard<std::mutex> lock(_mutex);
-                _pool.push(std::move(con));
-                _cond.notify_one();
-            }
-        });
-
-        // 检查活跃度
-        if (timestamp - con->_last_oper_time >= 5)
-        {
-            try
-            {
-                std::unique_ptr<sql::Statement> stmt(con->_con->createStatement());
-                stmt->executeQuery("SELECT 1");
-                con->_last_oper_time = timestamp;
-            }
-            catch (sql::SQLException &e)
-            {
-                healthy = false; // 标记为坏连接，DEFER 此时不会将其还回池子
-                _fail_count++;
-            }
-        }
-    }
-
-    // 重连补偿：确保把缺额补齐
-    while (_fail_count > 0)
-    {
         if (reconnect(timestamp))
         {
-            _fail_count--;
-        }
-        else
-        {
-            break; // 确实连不上了（如网络断开），退出等下次检查
+            _fail_count.store(0);
+            _pool.push(std::move(con));
         }
     }
 }
 
 bool MySqlPool::reconnect(long long timestamp)
 {
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (_fail_count.load() >= 3)
+        {
+            return false;
+        }
+    }
     try
     {
         sql::mysql::MySQL_Driver *driver = sql::mysql::get_mysql_driver_instance();
         auto *con = driver->connect(_url, _user, _pass);
         con->setSchema(_schema);
-
-        auto newCon = std::make_unique<SqlConnection>(con, timestamp);
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            _pool.push(std::move(newCon));
-        }
-
+        auto p = std::make_unique<SqlConnection>(con, timestamp);
+        _pool.push(std::move(p));
         return true;
     }
     catch (sql::SQLException &e)
     {
+        _fail_count.fetch_add(1);
         return false;
     }
 }

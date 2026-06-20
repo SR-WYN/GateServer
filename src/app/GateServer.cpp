@@ -14,6 +14,7 @@
 #include "RedisMgr.h"
 #include "StatusRpcClient.h"
 #include "StatusRpcClientImpl.h"
+#include "ThreadPoolMgr.h"
 #include "UserCache.h"
 #include "UserCacheImpl.h"
 #include "UserController.h"
@@ -38,7 +39,6 @@
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
-#include <thread>
 
 namespace net = boost::asio;
 
@@ -118,11 +118,8 @@ int main()
         std::unique_ptr<grpc::Server> grpcServer = grpcBuilder.BuildAndStart();
         LOGI(LogModule::App, "GateNotify gRPC service started on {}", grpcAddress);
 
-        std::thread grpcThread([grpcServerPtr = grpcServer.get()]() {
-            LOGI(LogModule::App, "gRPC server thread running");
-            grpcServerPtr->Wait();
-            LOGI(LogModule::App, "gRPC server thread stopped");
-        });
+        // 初始化线程池管理器（所有任务线程池在此创建）
+        ThreadPoolMgr::getInstance();
 
         // 7. 创建 IO 上下文并启动 HTTP 服务器
         net::io_context ioc{1};
@@ -149,13 +146,14 @@ int main()
             return logicSystem->handlePost(path, conn);
         };
         std::make_shared<CServer>(ioc, gatePort, getHandler, postHandler)->start();
-        LOGI(LogModule::App, "HTTP server started, entering io_context run loop");
-        ioc.run();
+        LOGI(LogModule::App, "HTTP server started");
 
-        if (grpcThread.joinable())
-        {
-            grpcThread.join();
-        }
+        // MySQL 健康检查 → 挂在 acceptor 的 io_context 上，用定时器替代独立线程
+        MySqlPool::getInstance().startHealthCheck(ioc);
+
+        // 主线程运行 acceptor io_context（阻塞直到收到信号）
+        LOGI(LogModule::App, "Entering io_context run loop (main thread)");
+        ioc.run();
 
         LOGI(LogModule::App, "GateServer stopped");
         Log::shutdown();

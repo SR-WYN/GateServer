@@ -1,5 +1,9 @@
 add_library(gs_base STATIC
     Singleton.h
+    ThreadPool.h
+    ThreadPool.cpp
+    ThreadPoolMgr.h
+    ThreadPoolMgr.cpp
     utils.cpp
 )
 

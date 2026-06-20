@@ -3,6 +3,7 @@
 
 #include "Log.h"
 #include "LogModule.h"
+#include "ThreadPoolMgr.h"
 #include "utils.h"
 
 HttpConnection::HttpConnection(boost::asio::io_context &ioc, HttpGetHandler getHandler,
@@ -27,7 +28,10 @@ void HttpConnection::start()
                              boost::ignore_unused(bytes_transferred);
                              Log::info(LogModule::Http, "Received request: {} {}",
                                        self->_request.method_string(), self->_request.target());
-                             self->handleReq();
+                             // 将业务处理投递到 HTTP 业务线程池，不阻塞 IO 线程
+                             ThreadPoolMgr::getInstance().enqueueHttpLogic([self]() {
+                                 self->handleReq();
+                             });
                              self->checkDeadline();
                          }
                          catch (std::exception &e)

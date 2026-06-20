@@ -1,10 +1,10 @@
 // CServer.cpp - HTTP 服务器入口
 #include "CServer.h"
 
-#include "AsioIOServicePool.h"
 #include "HttpConnection.h"
 #include "Log.h"
 #include "LogModule.h"
+#include "ThreadPoolMgr.h"
 
 CServer::CServer(boost::asio::io_context &ioc, unsigned short &port, HttpGetHandler getHandler,
                  HttpPostHandler postHandler)
@@ -17,7 +17,7 @@ CServer::CServer(boost::asio::io_context &ioc, unsigned short &port, HttpGetHand
 void CServer::start()
 {
     auto self = shared_from_this();
-    auto &ioContext = AsioIOServicePool::getInstance().getIoService();
+    auto &ioContext = ThreadPoolMgr::getInstance().getIoService();
     auto newCon = std::make_shared<HttpConnection>(ioContext, _getHandler, _postHandler);
     _acceptor.async_accept(newCon->getSocket(), [self, newCon](beast::error_code ec) {
         try

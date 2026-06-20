@@ -4,6 +4,7 @@
 #include "Log.h"
 #include "LogModule.h"
 #include "StatusRpcClient.h"
+#include "ThreadPoolMgr.h"
 #include "UserCache.h"
 #include "UserDao.h"
 #include "VerifyCodeCache.h"
@@ -227,12 +228,14 @@ void UserServiceImpl::handleUserOffline(int uid)
 {
     LOGI(LogModule::Http, "User offline notified, uid={}", uid);
 
-    // 清理 Redis 缓存
-    if (_userCache->isOnline(uid))
-    {
-        _userCache->removeSession(uid);
-        LOGI(LogModule::Http, "Session cache removed for uid={}", uid);
-    }
+    // 清理 Redis 缓存（投递到 Redis 线程池，避免阻塞 gRPC 回调线程）
+    ThreadPoolMgr::getInstance().enqueueRedis([this, uid]() {
+        if (_userCache->isOnline(uid))
+        {
+            _userCache->removeSession(uid);
+            LOGI(LogModule::Http, "Session cache removed for uid={}", uid);
+        }
+    });
 }
 
 int64_t UserServiceImpl::getCurrentTimestamp()

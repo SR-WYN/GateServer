@@ -133,23 +133,32 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
     auto cachedSession = _userCache->getSession(userInfo.uid);
     if (cachedSession)
     {
-        // 4.1 会话缓存命中 - 检查 Token 是否过期
+        // 4.1 会话缓存命中 - 检查 Token 是否过期且仍被 StatusServer 承认
         if (!cachedSession->_token.empty() && cachedSession->_expire_at > getCurrentTimestamp())
         {
-            // Token 有效，延长缓存时间并直接返回
-            _userCache->extendSession(userInfo.uid, SESSION_TTL_SECONDS);
+            int token_err = _statusRpc->validateToken(userInfo.uid, cachedSession->_token);
+            if (token_err == ErrorCodes::SUCCESS)
+            {
+                // Token 有效，延长缓存时间并直接返回
+                _userCache->extendSession(userInfo.uid, SESSION_TTL_SECONDS);
 
-            LOGI(LogModule::Http, "Login session cache hit: uid={}, email={}, host={}:{}",
-                 userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port);
+                LOGI(LogModule::Http,
+                     "Login session cache hit: uid={}, email={}, host={}:{}",
+                     userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port);
 
-            outUid = userInfo.uid;
-            outToken = cachedSession->_token;
-            outHost = cachedSession->_chat_host;
-            outPort = cachedSession->_chat_port;
-            return ErrorCodes::SUCCESS;
+                outUid = userInfo.uid;
+                outToken = cachedSession->_token;
+                outHost = cachedSession->_chat_host;
+                outPort = cachedSession->_chat_port;
+                return ErrorCodes::SUCCESS;
+            }
+
+            LOGW(LogModule::Http,
+                 "Login session cache token invalid, refresh token: uid={}, email={}, err={}",
+                 userInfo.uid, email, token_err);
         }
 
-        // Token 已过期，删除缓存
+        // Token 已过期或被 StatusServer 判定无效，删除缓存
         _userCache->removeSession(userInfo.uid);
     }
 

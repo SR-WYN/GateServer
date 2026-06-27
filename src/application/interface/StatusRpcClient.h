@@ -14,4 +14,8 @@ public:
 
     /// 根据 uid 获取分配的 ChatServer 地址和 token
     virtual GetChatServerRsp getChatServer(int uid) = 0;
+
+    /// 校验用户 token 是否有效
+    /// @return ErrorCodes::SUCCESS 表示有效，其他表示无效或 RPC 失败
+    virtual int validateToken(int uid, const std::string& token) = 0;
 };

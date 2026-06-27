@@ -52,3 +52,34 @@ GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
         return reply;
     }
 }
+
+int StatusGrpcClient::validateToken(int uid, const std::string& token)
+{
+    Log::info(LogModule::Grpc, "StatusGrpcClient::validateToken uid={}", uid);
+    ClientContext context;
+    message::ValidateTokenReq request;
+    message::ValidateTokenRsp reply;
+    request.set_uid(uid);
+    request.set_token(token);
+
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        Log::error(LogModule::Grpc, "validateToken: failed to get connection from pool");
+        return ErrorCodes::RPC_FAILED;
+    }
+
+    Status status = stub->ValidateToken(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+
+    if (!status.ok())
+    {
+        Log::error(LogModule::Grpc, "validateToken RPC failed: uid={}, error_code={}, msg={}", uid,
+                   status.error_code(), status.error_message());
+        return ErrorCodes::RPC_FAILED;
+    }
+
+    return reply.error();
+}

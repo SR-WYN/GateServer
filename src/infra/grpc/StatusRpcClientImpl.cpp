@@ -6,3 +6,8 @@ GetChatServerRsp StatusRpcClientImpl::getChatServer(int uid)
 {
     return StatusGrpcClient::getInstance().getChatServer(uid);
 }
+
+int StatusRpcClientImpl::validateToken(int uid, const std::string& token)
+{
+    return StatusGrpcClient::getInstance().validateToken(uid, token);
+}

@@ -9,4 +9,5 @@ class StatusRpcClientImpl : public StatusRpcClient
 {
 public:
     GetChatServerRsp getChatServer(int uid) override;
+    int validateToken(int uid, const std::string& token) override;
 };

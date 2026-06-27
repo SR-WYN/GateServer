@@ -24,6 +24,9 @@ public:
     // 根据 uid 获取分配的 ChatServer 地址（host:port）和 token
     GetChatServerRsp getChatServer(int uid);
 
+    // 校验用户 token 是否有效
+    int validateToken(int uid, const std::string& token);
+
 private:
     StatusGrpcClient();
     std::unique_ptr<StatusConPool> _pool;

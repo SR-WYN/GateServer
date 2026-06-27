@@ -10,6 +10,8 @@
 #include "data.h"
 #include "error_codes.h"
 
+#include <chrono>
+
 UserControllerImpl::UserControllerImpl(std::shared_ptr<UserService> userService)
     : _userService(std::move(userService))
 {
@@ -17,6 +19,7 @@ UserControllerImpl::UserControllerImpl(std::shared_ptr<UserService> userService)
 
 void UserControllerImpl::handleRegister(std::shared_ptr<HttpConnection> conn)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleRegister");
 
     Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
@@ -36,11 +39,18 @@ void UserControllerImpl::handleRegister(std::shared_ptr<HttpConnection> conn)
     auto nick = srcRoot.get("nick", "").asString();
     int sex = srcRoot.get("sex", 0).asInt();
 
+    LOGI(LogModule::Http, "Register: email={} user={} nick={} sex={}", email, name, nick, sex);
+
     UserInfo userInfo;
     int err =
         _userService->registerUser(email, verifyCode, name, passwd, confirm, nick, sex, userInfo);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
     if (err != ErrorCodes::SUCCESS)
     {
+        LOGW(LogModule::Http, "Register failed: email={} err={} cost={}ms", email, err, cost_ms);
         JsonUtil::makeErrorResponse(conn, err);
         return;
     }
@@ -53,10 +63,14 @@ void UserControllerImpl::handleRegister(std::shared_ptr<HttpConnection> conn)
     root["confirm"] = confirm;
     root["verify_code"] = verifyCode;
     JsonUtil::makeJsonResponse(conn, root);
+
+    LOGI(LogModule::Http, "Register success: uid={} email={} user={} cost={}ms", userInfo.uid,
+         email, name, cost_ms);
 }
 
 void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleLogin");
 
     Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
@@ -70,13 +84,20 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
     auto email = srcRoot["email"].asString();
     auto passwd = srcRoot["passwd"].asString();
 
+    LOGI(LogModule::Http, "Login: email={}", email);
+
     int uid = 0;
     std::string token;
     std::string host;
     std::string port;
     int err = _userService->loginUser(email, passwd, uid, token, host, port);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
     if (err != ErrorCodes::SUCCESS)
     {
+        LOGW(LogModule::Http, "Login failed: email={} err={} cost={}ms", email, err, cost_ms);
         JsonUtil::makeErrorResponse(conn, err);
         return;
     }
@@ -89,10 +110,14 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
     root["host"] = host;
     root["port"] = port;
     JsonUtil::makeJsonResponse(conn, root);
+
+    LOGI(LogModule::Http, "Login success: uid={} email={} host={}:{} cost={}ms", uid, email, host,
+         port, cost_ms);
 }
 
 void UserControllerImpl::handleResetPwd(std::shared_ptr<HttpConnection> conn)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleResetPwd");
 
     Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
@@ -109,9 +134,16 @@ void UserControllerImpl::handleResetPwd(std::shared_ptr<HttpConnection> conn)
     auto passwd = srcRoot["passwd"].asString();
     auto verifyCode = srcRoot["verify_code"].asString();
 
+    LOGI(LogModule::Http, "ResetPwd: email={} user={}", email, name);
+
     int err = _userService->resetPassword(email, verifyCode, name, passwd);
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
     if (err != ErrorCodes::SUCCESS)
     {
+        LOGW(LogModule::Http, "ResetPwd failed: email={} err={} cost={}ms", email, err, cost_ms);
         JsonUtil::makeErrorResponse(conn, err);
         return;
     }
@@ -122,4 +154,6 @@ void UserControllerImpl::handleResetPwd(std::shared_ptr<HttpConnection> conn)
     root["user"] = name;
     root["passwd"] = passwd;
     JsonUtil::makeJsonResponse(conn, root);
+
+    LOGI(LogModule::Http, "ResetPwd success: email={} cost={}ms", email, cost_ms);
 }

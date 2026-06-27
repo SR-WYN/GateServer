@@ -6,6 +6,8 @@
 #include "error_codes.h"
 #include "utils.h"
 
+#include <chrono>
+
 StatusGrpcClient::StatusGrpcClient()
 {
     auto &gCfgMgr = ConfigMgr::getInstance();
@@ -22,7 +24,9 @@ StatusGrpcClient::~StatusGrpcClient()
 
 GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
 {
+    const auto start = std::chrono::steady_clock::now();
     Log::info(LogModule::Grpc, "StatusGrpcClient::getChatServer uid={}", uid);
+
     ClientContext context;
     GetChatServerRsp reply;
     GetChatServerReq request;
@@ -38,16 +42,30 @@ GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
     utils::Defer defer([&stub, this]() {
         _pool->returnConnection(std::move(stub));
     });
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
     if (status.ok())
     {
-        Log::info(LogModule::Grpc, "getChatServer success: uid={}, host={}, port={}", uid,
-                  reply.host(), reply.port());
+        if (reply.error() == ErrorCodes::SUCCESS)
+        {
+            Log::info(LogModule::Grpc,
+                      "getChatServer success: uid={}, host={}, port={} cost={}ms", uid,
+                      reply.host(), reply.port(), cost_ms);
+        }
+        else
+        {
+            Log::warn(LogModule::Grpc, "getChatServer failed: uid={}, err={} cost={}ms", uid,
+                      reply.error(), cost_ms);
+        }
         return reply;
     }
     else
     {
-        Log::error(LogModule::Grpc, "getChatServer RPC failed: uid={}, error_code={}, msg={}", uid,
-                   status.error_code(), status.error_message());
+        Log::error(LogModule::Grpc, "getChatServer RPC failed: uid={}, error_code={}, msg={}",
+                   uid, status.error_code(), status.error_message());
         reply.set_error(ErrorCodes::RPC_FAILED);
         return reply;
     }
@@ -55,7 +73,9 @@ GetChatServerRsp StatusGrpcClient::getChatServer(int uid)
 
 int StatusGrpcClient::validateToken(int uid, const std::string& token)
 {
-    Log::info(LogModule::Grpc, "StatusGrpcClient::validateToken uid={}", uid);
+    const auto start = std::chrono::steady_clock::now();
+    Log::info(LogModule::Grpc, "StatusGrpcClient::validateToken uid={} token={}", uid, token);
+
     ClientContext context;
     message::ValidateTokenReq request;
     message::ValidateTokenRsp reply;
@@ -74,11 +94,25 @@ int StatusGrpcClient::validateToken(int uid, const std::string& token)
         _pool->returnConnection(std::move(stub));
     });
 
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
     if (!status.ok())
     {
-        Log::error(LogModule::Grpc, "validateToken RPC failed: uid={}, error_code={}, msg={}", uid,
-                   status.error_code(), status.error_message());
+        Log::error(LogModule::Grpc, "validateToken RPC failed: uid={}, error_code={}, msg={}",
+                   uid, status.error_code(), status.error_message());
         return ErrorCodes::RPC_FAILED;
+    }
+
+    if (reply.error() == ErrorCodes::SUCCESS)
+    {
+        Log::info(LogModule::Grpc, "validateToken success: uid={} cost={}ms", uid, cost_ms);
+    }
+    else
+    {
+        Log::warn(LogModule::Grpc, "validateToken failed: uid={} err={} cost={}ms", uid,
+                  reply.error(), cost_ms);
     }
 
     return reply.error();

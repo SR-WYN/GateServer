@@ -1,5 +1,7 @@
 #include "MySqlPool.h"
 #include "ConfigMgr.h"
+#include "Log.h"
+#include "LogModule.h"
 #include "utils.h"
 #include <boost/asio/steady_timer.hpp>
 #include <cppconn/exception.h>
@@ -29,6 +31,8 @@ void MySqlPool::initOnce()
     const auto &user = cfg["MySql"]["User"];
     const auto &pass = cfg["MySql"]["Passwd"];
     const auto &schema = cfg["MySql"]["Schema"];
+    LOGI(LogModule::Mysql, "MySqlPool initOnce host={} port={} schema={} user={}", host, port,
+         schema, user);
     pool.initPool(host + ":" + port, user, pass, schema, 5);
     pool._initialized.store(true);
 }
@@ -55,9 +59,13 @@ void MySqlPool::initPool(const std::string &url, const std::string &user, const 
                 std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
             _pool.push(std::make_unique<SqlConnection>(con, timestamp));
         }
+        LOGI(LogModule::Mysql, "MySqlPool initialized with {} connections to {}", _pool_size,
+             _url);
     }
     catch (sql::SQLException &e)
     {
+        LOGE(LogModule::Mysql, "MySqlPool initPool failed: {} (sql_state={}) err_code={}",
+             e.what(), e.getSQLState(), e.getErrorCode());
     }
 }
 
@@ -93,14 +101,21 @@ MySqlPool::~MySqlPool()
 
 std::unique_ptr<SqlConnection> MySqlPool::getConnection()
 {
+    const auto start = std::chrono::steady_clock::now();
     std::unique_lock<std::mutex> lock(_mutex);
-    _cond.wait(lock, [this]() {
+    bool got = _cond.wait_for(lock, std::chrono::seconds(5), [this]() {
         if (_stop)
         {
             return true;
         }
         return !_pool.empty();
     });
+
+    if (!got)
+    {
+        LOGE(LogModule::Mysql, "getConnection: timeout waiting for available connection");
+        return nullptr;
+    }
 
     if (_stop)
     {
@@ -109,6 +124,12 @@ std::unique_ptr<SqlConnection> MySqlPool::getConnection()
 
     auto con = std::move(_pool.front());
     _pool.pop();
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGD(LogModule::Mysql, "getConnection: acquired connection cost={}ms pool_size={}", cost_ms,
+         _pool.size());
     return con;
 }
 
@@ -127,6 +148,7 @@ void MySqlPool::returnConnection(std::unique_ptr<SqlConnection> con)
 
 void MySqlPool::close()
 {
+    LOGI(LogModule::Mysql, "MySqlPool closing");
     _stop.store(true);
     _cond.notify_all();
 }
@@ -135,6 +157,8 @@ void MySqlPool::checkConnection()
 {
     std::lock_guard<std::mutex> lock(_mutex);
     int poolSize = _pool.size();
+    int checked = 0;
+    int renewed = 0;
     for (int i = 0; i < poolSize; i++)
     {
         auto con = std::move(_pool.front());
@@ -142,6 +166,7 @@ void MySqlPool::checkConnection()
         auto currentTime = std::chrono::system_clock::now().time_since_epoch();
         long long timestamp =
             std::chrono::duration_cast<std::chrono::seconds>(currentTime).count();
+        ++checked;
         if (timestamp - con->_last_oper_time < 60)
         {
             _pool.push(std::move(con));
@@ -151,8 +176,11 @@ void MySqlPool::checkConnection()
         {
             _fail_count.store(0);
             _pool.push(std::move(con));
+            ++renewed;
         }
     }
+    LOGI(LogModule::Mysql, "checkConnection: checked={} renewed={} pool_size={}", checked,
+         renewed, _pool.size());
 }
 
 bool MySqlPool::reconnect(long long timestamp)
@@ -161,6 +189,8 @@ bool MySqlPool::reconnect(long long timestamp)
         std::lock_guard<std::mutex> lock(_mutex);
         if (_fail_count.load() >= 3)
         {
+            LOGW(LogModule::Mysql, "reconnect: too many consecutive failures ({}), skip",
+                 _fail_count.load());
             return false;
         }
     }
@@ -171,11 +201,14 @@ bool MySqlPool::reconnect(long long timestamp)
         con->setSchema(_schema);
         auto p = std::make_unique<SqlConnection>(con, timestamp);
         _pool.push(std::move(p));
+        LOGI(LogModule::Mysql, "reconnect: new connection added to pool");
         return true;
     }
     catch (sql::SQLException &e)
     {
         _fail_count.fetch_add(1);
+        LOGE(LogModule::Mysql, "reconnect: failed {} (sql_state={}) err_code={}", e.what(),
+             e.getSQLState(), e.getErrorCode());
         return false;
     }
 }

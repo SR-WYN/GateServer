@@ -6,6 +6,8 @@
 #include "ThreadPoolMgr.h"
 #include "utils.h"
 
+#include <chrono>
+
 HttpConnection::HttpConnection(boost::asio::io_context &ioc, HttpGetHandler getHandler,
                                HttpPostHandler postHandler)
     : _socket(ioc), _getHandler(std::move(getHandler)), _postHandler(std::move(postHandler))
@@ -16,17 +18,34 @@ HttpConnection::HttpConnection(boost::asio::io_context &ioc, HttpGetHandler getH
 void HttpConnection::start()
 {
     auto self = shared_from_this();
+    self->_req_start = std::chrono::steady_clock::now();
+
+    try
+    {
+        self->_peer_ip = self->_socket.remote_endpoint().address().to_string();
+        self->_peer_port = self->_socket.remote_endpoint().port();
+    }
+    catch (...)
+    {
+        self->_peer_ip = "unknown";
+        self->_peer_port = 0;
+    }
+
     http::async_read(_socket, _buffer, _request,
                      [self](boost::beast::error_code ec, std::size_t bytes_transferred) {
                          try
                          {
                              if (ec)
                              {
-                                 Log::error(LogModule::Http, "async_read error: {}", ec.message());
+                                 Log::error(LogModule::Http,
+                                            "async_read error peer={}:{} err={}", self->_peer_ip,
+                                            self->_peer_port, ec.message());
                                  return;
                              }
                              boost::ignore_unused(bytes_transferred);
-                             Log::info(LogModule::Http, "Received request: {} {}",
+                             Log::info(LogModule::Http,
+                                       "Received request peer={}:{} method={} target={}",
+                                       self->_peer_ip, self->_peer_port,
                                        self->_request.method_string(), self->_request.target());
                              // 将业务处理投递到 HTTP 业务线程池，不阻塞 IO 线程
                              ThreadPoolMgr::getInstance().enqueueHttpLogic([self]() {
@@ -94,7 +113,7 @@ void HttpConnection::handleReq()
     if (_request.method() == http::verb::get)
     {
         preParseGetParam();
-        Log::info(LogModule::Http, "Handle GET: {}", _get_url);
+        Log::info(LogModule::Http, "Handle GET: {} peer={}:{}", _get_url, _peer_ip, _peer_port);
         bool success = _getHandler(_get_url, shared_from_this());
         if (!success)
         {
@@ -113,7 +132,8 @@ void HttpConnection::handleReq()
     }
     if (_request.method() == http::verb::post)
     {
-        Log::info(LogModule::Http, "Handle POST: {}", _request.target());
+        Log::info(LogModule::Http, "Handle POST: {} peer={}:{}", _request.target(), _peer_ip,
+                  _peer_port);
         bool success = _postHandler(_request.target(), shared_from_this());
         if (!success)
         {
@@ -139,11 +159,25 @@ void HttpConnection::writeResponse()
     _response.content_length(_response.body().size());
     http::async_write(_socket, _response,
                       [self](boost::beast::error_code ec, std::size_t bytes_transferred) {
+                          const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                   std::chrono::steady_clock::now() -
+                                                   self->_req_start)
+                                                   .count();
                           if (ec)
                           {
-                              Log::error(LogModule::Http, "async_write error: {}", ec.message());
+                              Log::error(LogModule::Http,
+                                         "async_write error peer={}:{} err={} status={}",
+                                         self->_peer_ip, self->_peer_port, ec.message(),
+                                         static_cast<int>(self->_response.result()));
                           }
-                          Log::info(LogModule::Http, "Response sent, closing connection");
+                          else
+                          {
+                              Log::info(LogModule::Http,
+                                        "Response sent peer={}:{} status={} bytes={} cost={}ms",
+                                        self->_peer_ip, self->_peer_port,
+                                        static_cast<int>(self->_response.result()),
+                                        bytes_transferred, cost_ms);
+                          }
                           self->_socket.shutdown(tcp::socket::shutdown_send, ec);
                           self->_deadline.cancel();
                       });
@@ -156,7 +190,8 @@ void HttpConnection::checkDeadline()
     _deadline.async_wait([self](beast::error_code ec) {
         if (!ec)
         {
-            Log::warn(LogModule::Http, "Connection timeout, closing socket");
+            Log::warn(LogModule::Http, "Connection timeout peer={}:{} target={}", self->_peer_ip,
+                      self->_peer_port, self->_request.target());
             self->_socket.close(ec);
         }
     });

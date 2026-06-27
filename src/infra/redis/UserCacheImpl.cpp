@@ -10,12 +10,23 @@
 
 bool UserCacheImpl::setUserEmail(const std::string &name, const std::string &email)
 {
-    return RedisMgr::getInstance().set(name, email);
+    bool ok = RedisMgr::getInstance().set(name, email);
+    if (ok)
+    {
+        LOGI(LogModule::Redis, "User email cached name={} email={}", name, email);
+    }
+    else
+    {
+        LOGE(LogModule::Redis, "User email cache failed name={} email={}", name, email);
+    }
+    return ok;
 }
 
 bool UserCacheImpl::existsKey(const std::string &key)
 {
-    return RedisMgr::getInstance().existsKey(key);
+    bool ok = RedisMgr::getInstance().existsKey(key);
+    LOGI(LogModule::Redis, "existsKey key={} result={}", key, ok);
+    return ok;
 }
 
 // ========== 新增会话缓存方法 ==========
@@ -47,6 +58,9 @@ bool UserCacheImpl::saveSession(const UserSession &session, int ttl_seconds)
         // 加入在线集合
         redis.sAdd(onlineUsersKey(), std::to_string(session._uid));
 
+        LOGI(LogModule::Redis, "Session saved for uid={} email={} host={}:{} expire_at={}",
+             session._uid, session._email, session._chat_host, session._chat_port,
+             session._expire_at);
         return true;
     }
     catch (const std::exception &e)
@@ -79,6 +93,8 @@ std::optional<UserSession> UserCacheImpl::getSession(int uid)
         session._login_time = std::stoll(fields["login_time"]);
         session._expire_at = std::stoll(fields["expire_at"]);
 
+        LOGI(LogModule::Redis, "Session get hit for uid={} email={} expire_at={}", session._uid,
+             session._email, session._expire_at);
         return session;
     }
     catch (const std::exception &e)
@@ -177,6 +193,7 @@ bool UserCacheImpl::removeSession(int uid)
         // 从在线集合移除
         redis.sRem(onlineUsersKey(), std::to_string(uid));
 
+        LOGI(LogModule::Redis, "Session removed for uid={}", uid);
         return true;
     }
     catch (const std::exception &e)
@@ -215,6 +232,7 @@ bool UserCacheImpl::extendSession(int uid, int ttl_seconds)
             redis.expire(tokenKey(token), ttl_seconds);
         }
 
+        LOGI(LogModule::Redis, "Session extended for uid={} ttl={}s", uid, ttl_seconds);
         return true;
     }
     catch (const std::exception &e)
@@ -253,6 +271,8 @@ bool UserCacheImpl::cacheUserCredential(const std::string &email, int uid, const
         redis.hSet(key, "pwd_hash", pwd_hash);
         redis.expire(key, ttl_seconds);
 
+        LOGI(LogModule::Redis, "User credential cached for {} uid={} ttl={}s", email, uid,
+             ttl_seconds);
         return true;
     }
     catch (const std::exception &e)
@@ -280,6 +300,7 @@ bool UserCacheImpl::getUserCredential(const std::string &email, int &uid, std::s
         name = fields["name"];
         pwd_hash = fields["pwd_hash"];
 
+        LOGI(LogModule::Redis, "User credential hit for {} uid={}", email, uid);
         return !name.empty() && !pwd_hash.empty();
     }
     catch (const std::exception &e)
@@ -295,6 +316,7 @@ bool UserCacheImpl::invalidateUserCredential(const std::string &email)
     {
         auto &redis = RedisMgr::getInstance();
         redis.del(userCredKey(email));
+        LOGI(LogModule::Redis, "User credential invalidated for {}", email);
         return true;
     }
     catch (const std::exception &e)

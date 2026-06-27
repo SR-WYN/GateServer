@@ -8,6 +8,8 @@
 #include "VerifyService.h"
 #include "error_codes.h"
 
+#include <chrono>
+
 VerifyControllerImpl::VerifyControllerImpl(std::shared_ptr<VerifyService> verifyService)
     : _verifyService(std::move(verifyService))
 {
@@ -15,6 +17,7 @@ VerifyControllerImpl::VerifyControllerImpl(std::shared_ptr<VerifyService> verify
 
 void VerifyControllerImpl::handleGetVerifyCode(std::shared_ptr<HttpConnection> conn)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "VerifyControllerImpl::handleGetVerifyCode");
 
     Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
@@ -26,12 +29,26 @@ void VerifyControllerImpl::handleGetVerifyCode(std::shared_ptr<HttpConnection> c
     }
 
     auto email = srcRoot["email"].asString();
+    LOGI(LogModule::Http, "GetVerifyCode: email={}", email);
+
     auto rsp = _verifyService->getVerifyCode(email);
 
-    LOGI(LogModule::Http, "GetVerifyCode response error={} for email: {}", rsp.error(), email);
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
 
     Json::Value root;
     root["error"] = rsp.error();
     root["email"] = email;
     JsonUtil::makeJsonResponse(conn, root);
+
+    if (rsp.error() == ErrorCodes::SUCCESS)
+    {
+        LOGI(LogModule::Http, "GetVerifyCode success: email={} cost={}ms", email, cost_ms);
+    }
+    else
+    {
+        LOGW(LogModule::Http, "GetVerifyCode failed: email={} err={} cost={}ms", email,
+             rsp.error(), cost_ms);
+    }
 }

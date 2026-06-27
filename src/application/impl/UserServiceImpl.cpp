@@ -26,7 +26,8 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
                                   const std::string &confirm, const std::string &nick, int sex,
                                   UserInfo &outUser)
 {
-    LOGI(LogModule::Http, "UserServiceImpl::registerUser | email={}", email);
+    const auto start = std::chrono::steady_clock::now();
+    LOGI(LogModule::Http, "UserServiceImpl::registerUser | email={} user={}", email, name);
 
     // 验证验证码
     std::string cachedCode;
@@ -37,7 +38,8 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
     }
     if (cachedCode != verifyCode)
     {
-        LOGW(LogModule::Http, "Register: verify code mismatch for {}", email);
+        LOGW(LogModule::Http, "Register: verify code mismatch for {} (input={}, cached={})",
+             email, verifyCode, cachedCode);
         return ErrorCodes::VERIFY_CODE_ERROR;
     }
 
@@ -52,7 +54,7 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
     // 检查密码一致性
     if (passwd != confirm)
     {
-        LOGW(LogModule::Http, "Register: password mismatch");
+        LOGW(LogModule::Http, "Register: password mismatch for {}", email);
         return ErrorCodes::PASSWD_NOT_MATCH;
     }
 
@@ -65,7 +67,7 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
     }
     if (uid < 0)
     {
-        LOGE(LogModule::Http, "Register: regUser failed, uid={}", uid);
+        LOGE(LogModule::Http, "Register: regUser failed, uid={} email={}", uid, email);
         return ErrorCodes::RPC_FAILED;
     }
 
@@ -78,7 +80,11 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
     outUser.email = email;
     outUser.pwd = passwd;
 
-    LOGI(LogModule::Http, "Register success: uid={}, name={}, email={}", uid, name, email);
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Http, "Register success: uid={}, name={}, email={} cost={}ms", uid, name,
+         email, cost_ms);
     return ErrorCodes::SUCCESS;
 }
 
@@ -86,6 +92,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
                                std::string &outToken, std::string &outHost,
                                std::string &outPort)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserServiceImpl::loginUser | email={}", email);
 
     UserInfo userInfo;
@@ -105,7 +112,8 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
             userInfo.pwd = cachedPwdHash;
             fromCache = true;
 
-            LOGI(LogModule::Http, "Login credential cache hit: uid={}, email={}", cachedUid, email);
+            LOGI(LogModule::Http, "Login credential cache hit: uid={}, email={}", cachedUid,
+                 email);
         }
         else
         {
@@ -117,6 +125,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
     // 2. Redis 缓存未命中，回源 MySQL 校验密码并获取用户信息
     if (!fromCache)
     {
+        LOGI(LogModule::Http, "Login credential cache miss, fallback to MySQL: email={}", email);
         if (!_userDao->checkPwd(email, passwd, userInfo))
         {
             LOGW(LogModule::Http, "Login: password mismatch (MySQL) for {}", email);
@@ -126,7 +135,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
         // 3. MySQL 校验成功，将用户凭证写入 Redis 缓存
         _userCache->cacheUserCredential(email, userInfo.uid, userInfo.name, passwd,
                                         USER_CRED_TTL_SECONDS);
-        LOGI(LogModule::Http, "User credential cached for {}", email);
+        LOGI(LogModule::Http, "User credential cached for {} uid={}", email, userInfo.uid);
     }
 
     // 4. 原有会话缓存逻辑保持不变
@@ -142,9 +151,13 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
                 // Token 有效，延长缓存时间并直接返回
                 _userCache->extendSession(userInfo.uid, SESSION_TTL_SECONDS);
 
+                const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                         std::chrono::steady_clock::now() - start)
+                                         .count();
                 LOGI(LogModule::Http,
-                     "Login session cache hit: uid={}, email={}, host={}:{}",
-                     userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port);
+                     "Login session cache hit: uid={}, email={}, host={}:{} token={} cost={}ms",
+                     userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port,
+                     cachedSession->_token, cost_ms);
 
                 outUid = userInfo.uid;
                 outToken = cachedSession->_token;
@@ -157,12 +170,20 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
                  "Login session cache token invalid, refresh token: uid={}, email={}, err={}",
                  userInfo.uid, email, token_err);
         }
+        else
+        {
+            LOGI(LogModule::Http,
+                 "Login session cache expired: uid={}, email={}, token_empty={}", userInfo.uid,
+                 email, cachedSession->_token.empty());
+        }
 
         // Token 已过期或被 StatusServer 判定无效，删除缓存
         _userCache->removeSession(userInfo.uid);
     }
 
     // 4.2 会话缓存未命中或已过期 - 调用 StatusServer
+    LOGI(LogModule::Http, "Login session cache miss, fetch ChatServer from StatusServer: uid={}",
+         userInfo.uid);
     auto reply = _statusRpc->getChatServer(userInfo.uid);
     if (reply.error())
     {
@@ -181,10 +202,18 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
     session._login_time = getCurrentTimestamp();
     session._expire_at = session._login_time + TOKEN_VALIDITY_SECONDS;
 
-    _userCache->saveSession(session, SESSION_TTL_SECONDS);
+    if (!_userCache->saveSession(session, SESSION_TTL_SECONDS))
+    {
+        LOGE(LogModule::Http, "Login: saveSession failed for uid={}", userInfo.uid);
+        return ErrorCodes::RPC_FAILED;
+    }
 
-    LOGI(LogModule::Http, "Login session cache miss: uid={}, email={}, host={}:{}", userInfo.uid,
-         email, reply.host(), reply.port());
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Http,
+         "Login session cache miss: uid={}, email={}, host={}:{} token={} cost={}ms",
+         userInfo.uid, email, reply.host(), reply.port(), reply.token(), cost_ms);
 
     outUid = userInfo.uid;
     outToken = reply.token();
@@ -196,6 +225,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
 int UserServiceImpl::resetPassword(const std::string &email, const std::string &verifyCode,
                                    const std::string &name, const std::string &newPwd)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserServiceImpl::resetPassword | email={}, user={}", email, name);
 
     // 验证验证码
@@ -207,7 +237,8 @@ int UserServiceImpl::resetPassword(const std::string &email, const std::string &
     }
     if (cachedCode != verifyCode)
     {
-        LOGW(LogModule::Http, "ResetPwd: verify code mismatch for {}", email);
+        LOGW(LogModule::Http, "ResetPwd: verify code mismatch for {} (input={}, cached={})",
+             email, verifyCode, cachedCode);
         return ErrorCodes::VERIFY_CODE_ERROR;
     }
 
@@ -229,20 +260,34 @@ int UserServiceImpl::resetPassword(const std::string &email, const std::string &
     _userCache->invalidateUserCredential(email);
     LOGI(LogModule::Http, "User credential cache invalidated for {}", email);
 
-    LOGI(LogModule::Http, "ResetPwd success: email={}", email);
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Http, "ResetPwd success: email={} cost={}ms", email, cost_ms);
     return ErrorCodes::SUCCESS;
 }
 
 void UserServiceImpl::handleUserOffline(int uid)
 {
+    const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "User offline notified, uid={}", uid);
 
     // 清理 Redis 缓存（投递到 Redis 线程池，避免阻塞 gRPC 回调线程）
     ThreadPoolMgr::getInstance().enqueueRedis([this, uid]() {
         if (_userCache->isOnline(uid))
         {
-            _userCache->removeSession(uid);
-            LOGI(LogModule::Http, "Session cache removed for uid={}", uid);
+            if (_userCache->removeSession(uid))
+            {
+                LOGI(LogModule::Http, "Session cache removed for uid={}", uid);
+            }
+            else
+            {
+                LOGE(LogModule::Http, "Session cache remove failed for uid={}", uid);
+            }
+        }
+        else
+        {
+            LOGI(LogModule::Http, "User not online, skip session removal uid={}", uid);
         }
     });
 }

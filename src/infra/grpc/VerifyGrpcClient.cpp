@@ -7,6 +7,7 @@
 #include "message.grpc.pb.h"
 #include "message.pb.h"
 
+#include <chrono>
 #include <memory>
 
 VerifyGrpcClient::VerifyGrpcClient()
@@ -25,7 +26,9 @@ VerifyGrpcClient::~VerifyGrpcClient()
 
 GetVerifyRsp VerifyGrpcClient::getVerifyCode(std::string email)
 {
+    const auto start = std::chrono::steady_clock::now();
     Log::info(LogModule::Grpc, "VerifyGrpcClient::getVerifyCode email={}", email);
+
     ClientContext context;
     GetVerifyRsp reply;
     GetVerifyReq request;
@@ -39,10 +42,23 @@ GetVerifyRsp VerifyGrpcClient::getVerifyCode(std::string email)
     }
     Status status = stub->GetVerifyCode(&context, request, &reply);
     _pool->returnConnection(std::move(stub));
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
     if (status.ok())
     {
-        Log::info(LogModule::Grpc, "getVerifyCode success: email={}, error={}", email,
-                  reply.error());
+        if (reply.error() == ErrorCodes::SUCCESS)
+        {
+            Log::info(LogModule::Grpc, "getVerifyCode success: email={} cost={}ms", email,
+                      cost_ms);
+        }
+        else
+        {
+            Log::warn(LogModule::Grpc, "getVerifyCode failed: email={} err={} cost={}ms", email,
+                      reply.error(), cost_ms);
+        }
         return reply;
     }
     else

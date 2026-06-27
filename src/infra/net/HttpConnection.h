@@ -5,6 +5,7 @@
 #include <boost/beast.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/http/dynamic_body.hpp>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -49,6 +50,10 @@ private:
     std::unordered_map<std::string, std::string> _get_params;
     std::function<bool(const std::string &, std::shared_ptr<HttpConnection>)> _getHandler;
     std::function<bool(const std::string &, std::shared_ptr<HttpConnection>)> _postHandler;
+
+    std::chrono::steady_clock::time_point _req_start;
+    std::string _peer_ip{"unknown"};
+    unsigned short _peer_port{0};
 };
 
 using HttpGetHandler = std::function<bool(const std::string &, std::shared_ptr<HttpConnection>)>;

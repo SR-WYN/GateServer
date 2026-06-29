@@ -1,32 +1,11 @@
+// utils.h - 通用工具集合
 #pragma once
-#include <functional>
 #include <string>
 
-namespace utils
+namespace utils::url
 {
 
-// 将字节转换为十六进制字符
-unsigned char toHex(unsigned char x);
+std::string encode(const std::string &str);
+std::string decode(const std::string &str);
 
-// 将十六进制字符转换为字节
-unsigned char fromHex(unsigned char x);
-
-// 对URL进行编码
-std::string urlEncode(const std::string &str);
-
-// 对URL进行解码
-std::string urlDecode(const std::string &str);
-
-class Defer
-{
-public:
-    explicit Defer(std::function<void()> func);
-    ~Defer();
-    Defer(const Defer &) = delete;
-    Defer &operator=(const Defer &) = delete;
-
-private:
-    std::function<void()> _func;
-};
-
-} // namespace utils
+} // namespace utils::url

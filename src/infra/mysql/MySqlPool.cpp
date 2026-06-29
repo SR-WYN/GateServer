@@ -2,7 +2,7 @@
 #include "ConfigMgr.h"
 #include "Log.h"
 #include "LogModule.h"
-#include "utils.h"
+
 #include <boost/asio/steady_timer.hpp>
 #include <cppconn/exception.h>
 #include <cppconn/statement.h>

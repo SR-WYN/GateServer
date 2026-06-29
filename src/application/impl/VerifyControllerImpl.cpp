@@ -20,11 +20,11 @@ void VerifyControllerImpl::handleGetVerifyCode(std::shared_ptr<HttpConnection> c
     const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "VerifyControllerImpl::handleGetVerifyCode");
 
-    Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
+    Json::Value srcRoot = utils::json::parseRequestBody(conn);
     if (srcRoot.isNull() || !srcRoot.isMember("email"))
     {
         LOGW(LogModule::Http, "GetVerifyCode: invalid JSON, missing email");
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
+        utils::json::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
         return;
     }
 
@@ -40,7 +40,7 @@ void VerifyControllerImpl::handleGetVerifyCode(std::shared_ptr<HttpConnection> c
     Json::Value root;
     root["error"] = rsp.error();
     root["email"] = email;
-    JsonUtil::makeJsonResponse(conn, root);
+    utils::json::makeJsonResponse(conn, root);
 
     if (rsp.error() == ErrorCodes::SUCCESS)
     {

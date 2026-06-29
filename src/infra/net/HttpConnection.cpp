@@ -85,8 +85,8 @@ void HttpConnection::preParseGetParam()
         size_t eqPos = pair.find('=');
         if (eqPos != std::string::npos)
         {
-            key = utils::urlDecode(pair.substr(0, eqPos));
-            value = utils::urlDecode(pair.substr(eqPos + 1));
+            key = utils::url::decode(pair.substr(0, eqPos));
+            value = utils::url::decode(pair.substr(eqPos + 1));
             _get_params[key] = value;
         }
         queryString.erase(0, pos + 1);
@@ -97,8 +97,8 @@ void HttpConnection::preParseGetParam()
         size_t eqPos = queryString.find('=');
         if (eqPos != std::string::npos)
         {
-            key = utils::urlDecode(queryString.substr(0, eqPos));
-            value = utils::urlDecode(queryString.substr(eqPos + 1));
+            key = utils::url::decode(queryString.substr(0, eqPos));
+            value = utils::url::decode(queryString.substr(eqPos + 1));
             _get_params[key] = value;
         }
     }

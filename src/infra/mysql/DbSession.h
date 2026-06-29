@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MySqlPool.h"
-#include "utils.h"
+#include "defer.h"
 #include <cppconn/exception.h>
 #include <cppconn/prepared_statement.h>
 #include <cppconn/resultset.h>

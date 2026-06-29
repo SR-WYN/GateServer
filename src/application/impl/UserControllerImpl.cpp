@@ -22,12 +22,12 @@ void UserControllerImpl::handleRegister(std::shared_ptr<HttpConnection> conn)
     const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleRegister");
 
-    Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
+    Json::Value srcRoot = utils::json::parseRequestBody(conn);
     if (srcRoot.isNull() || !srcRoot.isMember("email") || !srcRoot.isMember("verify_code") ||
         !srcRoot.isMember("user") || !srcRoot.isMember("passwd") || !srcRoot.isMember("confirm"))
     {
         LOGW(LogModule::Http, "Register: invalid JSON fields");
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
+        utils::json::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
         return;
     }
 
@@ -51,7 +51,7 @@ void UserControllerImpl::handleRegister(std::shared_ptr<HttpConnection> conn)
     if (err != ErrorCodes::SUCCESS)
     {
         LOGW(LogModule::Http, "Register failed: email={} err={} cost={}ms", email, err, cost_ms);
-        JsonUtil::makeErrorResponse(conn, err);
+        utils::json::makeErrorResponse(conn, err);
         return;
     }
 
@@ -62,7 +62,7 @@ void UserControllerImpl::handleRegister(std::shared_ptr<HttpConnection> conn)
     root["passwd"] = passwd;
     root["confirm"] = confirm;
     root["verify_code"] = verifyCode;
-    JsonUtil::makeJsonResponse(conn, root);
+    utils::json::makeJsonResponse(conn, root);
 
     LOGI(LogModule::Http, "Register success: uid={} email={} user={} cost={}ms", userInfo.uid,
          email, name, cost_ms);
@@ -73,11 +73,11 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
     const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleLogin");
 
-    Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
+    Json::Value srcRoot = utils::json::parseRequestBody(conn);
     if (srcRoot.isNull() || !srcRoot.isMember("email") || !srcRoot.isMember("passwd"))
     {
         LOGW(LogModule::Http, "Login: invalid JSON fields");
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
+        utils::json::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
         return;
     }
 
@@ -98,7 +98,7 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
     if (err != ErrorCodes::SUCCESS)
     {
         LOGW(LogModule::Http, "Login failed: email={} err={} cost={}ms", email, err, cost_ms);
-        JsonUtil::makeErrorResponse(conn, err);
+        utils::json::makeErrorResponse(conn, err);
         return;
     }
 
@@ -109,7 +109,7 @@ void UserControllerImpl::handleLogin(std::shared_ptr<HttpConnection> conn)
     root["token"] = token;
     root["host"] = host;
     root["port"] = port;
-    JsonUtil::makeJsonResponse(conn, root);
+    utils::json::makeJsonResponse(conn, root);
 
     LOGI(LogModule::Http, "Login success: uid={} email={} host={}:{} cost={}ms", uid, email, host,
          port, cost_ms);
@@ -120,12 +120,12 @@ void UserControllerImpl::handleResetPwd(std::shared_ptr<HttpConnection> conn)
     const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleResetPwd");
 
-    Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
+    Json::Value srcRoot = utils::json::parseRequestBody(conn);
     if (srcRoot.isNull() || !srcRoot.isMember("email") || !srcRoot.isMember("user") ||
         !srcRoot.isMember("passwd") || !srcRoot.isMember("verify_code"))
     {
         LOGW(LogModule::Http, "ResetPwd: invalid JSON fields");
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
+        utils::json::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
         return;
     }
 
@@ -144,7 +144,7 @@ void UserControllerImpl::handleResetPwd(std::shared_ptr<HttpConnection> conn)
     if (err != ErrorCodes::SUCCESS)
     {
         LOGW(LogModule::Http, "ResetPwd failed: email={} err={} cost={}ms", email, err, cost_ms);
-        JsonUtil::makeErrorResponse(conn, err);
+        utils::json::makeErrorResponse(conn, err);
         return;
     }
 
@@ -153,7 +153,7 @@ void UserControllerImpl::handleResetPwd(std::shared_ptr<HttpConnection> conn)
     root["email"] = email;
     root["user"] = name;
     root["passwd"] = passwd;
-    JsonUtil::makeJsonResponse(conn, root);
+    utils::json::makeJsonResponse(conn, root);
 
     LOGI(LogModule::Http, "ResetPwd success: email={} cost={}ms", email, cost_ms);
 }
@@ -163,11 +163,11 @@ void UserControllerImpl::handleLogout(std::shared_ptr<HttpConnection> conn)
     const auto start = std::chrono::steady_clock::now();
     LOGI(LogModule::Http, "UserControllerImpl::handleLogout");
 
-    Json::Value srcRoot = JsonUtil::parseRequestBody(conn);
+    Json::Value srcRoot = utils::json::parseRequestBody(conn);
     if (srcRoot.isNull() || !srcRoot.isMember("uid"))
     {
         LOGW(LogModule::Http, "Logout: invalid JSON fields");
-        JsonUtil::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
+        utils::json::makeErrorResponse(conn, ErrorCodes::ERROR_JSON);
         return;
     }
 
@@ -182,14 +182,14 @@ void UserControllerImpl::handleLogout(std::shared_ptr<HttpConnection> conn)
     if (err != ErrorCodes::SUCCESS)
     {
         LOGW(LogModule::Http, "Logout failed: uid={} err={} cost={}ms", uid, err, cost_ms);
-        JsonUtil::makeErrorResponse(conn, err);
+        utils::json::makeErrorResponse(conn, err);
         return;
     }
 
     Json::Value root;
     root["error"] = ErrorCodes::SUCCESS;
     root["uid"] = uid;
-    JsonUtil::makeJsonResponse(conn, root);
+    utils::json::makeJsonResponse(conn, root);
 
     LOGI(LogModule::Http, "Logout success: uid={} cost={}ms", uid, cost_ms);
 }

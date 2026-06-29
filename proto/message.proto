@@ -107,10 +107,12 @@ message BindUserToNodeRsp {
 
 message UnbindUserReq {
   int32 uid = 1;
+  string expected_node = 2;
 }
 
 message UnbindUserRsp {
   int32 error = 1;
+  bool skipped = 2;
 }
 
 message ValidateTokenReq {
@@ -121,6 +123,32 @@ message ValidateTokenReq {
 message ValidateTokenRsp {
   int32 error = 1;
   int32 uid = 2;
+}
+
+message KickUserReq {
+  int32 uid = 1;
+  string reason = 2;
+}
+
+message KickUserRsp {
+  int32 error = 1;
+  int32 uid = 2;
+}
+
+message RefreshTokenTTLReq {
+  int32 uid = 1;
+}
+
+message RefreshTokenTTLRsp {
+  int32 error = 1;
+}
+
+message LogoutReq {
+  int32 uid = 1;
+}
+
+message LogoutRsp {
+  int32 error = 1;
 }
 
 // GateServer 通知服务（供 StatusServer 调用）
@@ -147,4 +175,6 @@ service StatusService {
   rpc BindUserToNode(BindUserToNodeReq) returns (BindUserToNodeRsp);
   rpc UnbindUser(UnbindUserReq) returns (UnbindUserRsp);
   rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenRsp);
+  rpc RefreshTokenTTL(RefreshTokenTTLReq) returns (RefreshTokenTTLRsp);
+  rpc Logout(LogoutReq) returns (LogoutRsp);
 }

@@ -4,6 +4,8 @@ set_source_files_properties(${PROTO_SRCS} PROPERTIES GENERATED TRUE)
 
 add_library(gateserver_includes INTERFACE)
 target_include_directories(gateserver_includes INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/utils
     ${CMAKE_CURRENT_SOURCE_DIR}/domain
     ${CMAKE_CURRENT_SOURCE_DIR}/application
     ${CMAKE_CURRENT_SOURCE_DIR}/application/interface
@@ -19,6 +21,7 @@ target_include_directories(gateserver_includes INTERFACE
     ${PROTO_GEN_DIR}
 )
 
+add_subdirectory(common)
 add_subdirectory(domain)
 add_subdirectory(infra)
 add_subdirectory(application)
@@ -44,6 +47,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${PROTO_GEN_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE
     gateserver_includes
     gateserver_app_dir
+    common
     gs_application
     gs_infra
     Boost::system

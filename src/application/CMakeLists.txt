@@ -12,7 +12,6 @@ add_library(gs_application STATIC
     impl/VerifyControllerImpl.cpp
     impl/LogicSystemImpl.cpp
     impl/GateService.cpp
-    impl/JsonUtil.cpp
 )
 
 target_link_libraries(gs_application PUBLIC

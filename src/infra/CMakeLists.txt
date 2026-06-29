@@ -10,6 +10,7 @@ add_library(gs_infra INTERFACE)
 
 target_link_libraries(gs_infra INTERFACE
     gateserver_includes
+    common
     gs_domain
     gs_base
     gs_log

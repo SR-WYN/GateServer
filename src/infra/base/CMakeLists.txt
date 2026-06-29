@@ -4,7 +4,6 @@ add_library(gs_base STATIC
     ThreadPool.cpp
     ThreadPoolMgr.h
     ThreadPoolMgr.cpp
-    utils.cpp
 )
 
-target_link_libraries(gs_base PUBLIC gateserver_includes)
+target_link_libraries(gs_base PUBLIC gateserver_includes common)

@@ -4,10 +4,11 @@
 #include "LogModule.h"
 #include "RedisMgr.h"
 #include "error_codes.h"
+#include "redis_keys.h"
 
 bool VerifyCodeCacheImpl::getVerifyCode(const std::string &email, std::string &code)
 {
-    std::string redis_key = std::string(RedisPrefix::CODE) + email;
+    std::string redis_key = std::string(constants::redis::kCodePrefix) + email;
     bool ok = RedisMgr::getInstance().get(redis_key, code);
     if (ok)
     {

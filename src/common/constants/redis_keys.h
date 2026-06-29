@@ -4,6 +4,7 @@
 namespace constants::redis
 {
 
+constexpr const char *kCodePrefix = "code_";
 constexpr const char *kSessionPrefix = "gate:session:";
 constexpr const char *kNamePrefix = "gate:name:";
 constexpr const char *kEmailPrefix = "gate:email:";

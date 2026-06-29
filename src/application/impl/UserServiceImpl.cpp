@@ -73,7 +73,7 @@ int UserServiceImpl::registerUser(const std::string &email, const std::string &v
 
     // 缓存用户信息
     _userCache->setUserEmail(name, email);
-    _userCache->cacheUserCredential(email, uid, name, passwd, USER_CRED_TTL_SECONDS);
+    _userCache->cacheUserCredential(email, uid, name, passwd, constants::business::kUserCredTtlSeconds);
 
     outUser.uid = uid;
     outUser.name = name;
@@ -134,7 +134,7 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
 
         // 3. MySQL 校验成功，将用户凭证写入 Redis 缓存
         _userCache->cacheUserCredential(email, userInfo.uid, userInfo.name, passwd,
-                                        USER_CRED_TTL_SECONDS);
+                                        constants::business::kUserCredTtlSeconds);
         LOGI(LogModule::Http, "User credential cached for {} uid={}", email, userInfo.uid);
     }
 
@@ -165,9 +165,9 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
     session._chat_host = reply.host();
     session._chat_port = reply.port();
     session._login_time = getCurrentTimestamp();
-    session._expire_at = session._login_time + TOKEN_VALIDITY_SECONDS;
+    session._expire_at = session._login_time + constants::business::kTokenValiditySeconds;
 
-    if (!_userCache->saveSession(session, SESSION_TTL_SECONDS))
+    if (!_userCache->saveSession(session, constants::business::kSessionTtlSeconds))
     {
         LOGE(LogModule::Http, "Login: saveSession failed for uid={}", userInfo.uid);
         return ErrorCodes::RPC_FAILED;

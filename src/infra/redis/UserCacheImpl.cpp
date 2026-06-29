@@ -330,30 +330,30 @@ bool UserCacheImpl::invalidateUserCredential(const std::string &email)
 
 std::string UserCacheImpl::sessionKey(int uid)
 {
-    return std::string(SESSION_PREFIX) + std::to_string(uid);
+    return std::string(constants::redis::kSessionPrefix) + std::to_string(uid);
 }
 
 std::string UserCacheImpl::nameKey(const std::string &name)
 {
-    return std::string(NAME_PREFIX) + name;
+    return std::string(constants::redis::kNamePrefix) + name;
 }
 
 std::string UserCacheImpl::emailKey(const std::string &email)
 {
-    return std::string(EMAIL_PREFIX) + email;
+    return std::string(constants::redis::kEmailPrefix) + email;
 }
 
 std::string UserCacheImpl::tokenKey(const std::string &token)
 {
-    return std::string(TOKEN_PREFIX) + token;
+    return std::string(constants::redis::kTokenPrefix) + token;
 }
 
 std::string UserCacheImpl::onlineUsersKey()
 {
-    return ONLINE_USERS_KEY;
+    return constants::redis::kOnlineUsersKey;
 }
 
 std::string UserCacheImpl::userCredKey(const std::string &email)
 {
-    return std::string(USER_CRED_PREFIX) + email;
+    return std::string(constants::redis::kUserCredPrefix) + email;
 }

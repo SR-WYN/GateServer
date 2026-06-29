@@ -2,6 +2,7 @@
 #pragma once
 
 #include "UserService.h"
+#include "business_constants.h"
 #include <memory>
 
 class UserDao;
@@ -36,11 +37,6 @@ private:
     std::shared_ptr<UserCache> _userCache;
     std::shared_ptr<VerifyCodeCache> _verifyCache;
     std::shared_ptr<StatusRpcClient> _statusRpc;
-
-    // 会话/Token TTL 与 StatusServer 的 token TTL 对齐（秒）
-    static constexpr int SESSION_TTL_SECONDS = 300;
-    static constexpr int TOKEN_VALIDITY_SECONDS = 300;
-    static constexpr int USER_CRED_TTL_SECONDS = 604800; // 用户凭证缓存 7 天
 
     int64_t getCurrentTimestamp();
 };

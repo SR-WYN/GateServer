@@ -3,6 +3,7 @@
 #pragma once
 
 #include "UserCache.h"
+#include "redis_keys.h"
 
 #include <map>
 
@@ -38,12 +39,7 @@ private:
     static std::string tokenKey(const std::string &token);
     static std::string onlineUsersKey();
 
-    static constexpr char SESSION_PREFIX[] = "gate:session:";
-    static constexpr char NAME_PREFIX[] = "gate:name:";
-    static constexpr char EMAIL_PREFIX[] = "gate:email:";
-    static constexpr char TOKEN_PREFIX[] = "gate:token:";
-    static constexpr char ONLINE_USERS_KEY[] = "gate:online_users";
-    static constexpr char USER_CRED_PREFIX[] = "gate:user_cred:";
+
 
     static std::string userCredKey(const std::string &email);
 };

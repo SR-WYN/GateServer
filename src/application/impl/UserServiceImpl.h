@@ -27,6 +27,8 @@ public:
     int resetPassword(const std::string &email, const std::string &verifyCode,
                       const std::string &name, const std::string &newPwd) override;
 
+    int logoutUser(int uid) override;
+
     void handleUserOffline(int uid) override;
 
 private:
@@ -35,9 +37,10 @@ private:
     std::shared_ptr<VerifyCodeCache> _verifyCache;
     std::shared_ptr<StatusRpcClient> _statusRpc;
 
-    static constexpr int SESSION_TTL_SECONDS = 86400;    // 会话缓存 24 小时
-    static constexpr int TOKEN_VALIDITY_SECONDS = 7200;  // Token 有效期 2 小时
+    // 会话/Token TTL 与 StatusServer 的 token TTL 对齐（秒）
+    static constexpr int SESSION_TTL_SECONDS = 300;
+    static constexpr int TOKEN_VALIDITY_SECONDS = 300;
     static constexpr int USER_CRED_TTL_SECONDS = 604800; // 用户凭证缓存 7 天
 
-    static int64_t getCurrentTimestamp();
+    int64_t getCurrentTimestamp();
 };

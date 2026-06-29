@@ -117,3 +117,47 @@ int StatusGrpcClient::validateToken(int uid, const std::string& token)
 
     return reply.error();
 }
+
+bool StatusGrpcClient::logout(int uid)
+{
+    const auto start = std::chrono::steady_clock::now();
+    Log::info(LogModule::Grpc, "StatusGrpcClient::logout uid={}", uid);
+
+    ClientContext context;
+    message::LogoutReq request;
+    message::LogoutRsp reply;
+    request.set_uid(uid);
+
+    auto stub = _pool->getConnection();
+    if (!stub)
+    {
+        Log::error(LogModule::Grpc, "logout: failed to get connection from pool");
+        return false;
+    }
+
+    Status status = stub->Logout(&context, request, &reply);
+    utils::Defer defer([&stub, this]() {
+        _pool->returnConnection(std::move(stub));
+    });
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+
+    if (!status.ok())
+    {
+        Log::error(LogModule::Grpc, "logout RPC failed: uid={}, error_code={}, msg={}",
+                   uid, status.error_code(), status.error_message());
+        return false;
+    }
+
+    if (reply.error() != ErrorCodes::SUCCESS)
+    {
+        Log::warn(LogModule::Grpc, "logout failed: uid={}, err={} cost={}ms", uid,
+                  reply.error(), cost_ms);
+        return false;
+    }
+
+    Log::info(LogModule::Grpc, "logout success: uid={} cost={}ms", uid, cost_ms);
+    return true;
+}

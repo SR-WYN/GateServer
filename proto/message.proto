@@ -107,12 +107,10 @@ message BindUserToNodeRsp {
 
 message UnbindUserReq {
   int32 uid = 1;
-  string expected_node = 2;
 }
 
 message UnbindUserRsp {
   int32 error = 1;
-  bool skipped = 2;
 }
 
 message ValidateTokenReq {
@@ -177,4 +175,5 @@ service StatusService {
   rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenRsp);
   rpc RefreshTokenTTL(RefreshTokenTTLReq) returns (RefreshTokenTTLRsp);
   rpc Logout(LogoutReq) returns (LogoutRsp);
+  rpc KickUser(KickUserReq) returns (KickUserRsp);
 }

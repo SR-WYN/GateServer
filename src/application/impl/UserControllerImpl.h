@@ -14,6 +14,7 @@ public:
     void handleRegister(std::shared_ptr<HttpConnection> conn) override;
     void handleLogin(std::shared_ptr<HttpConnection> conn) override;
     void handleResetPwd(std::shared_ptr<HttpConnection> conn) override;
+    void handleLogout(std::shared_ptr<HttpConnection> conn) override;
 
 private:
     std::shared_ptr<UserService> _userService;

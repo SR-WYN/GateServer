@@ -27,6 +27,9 @@ public:
     // 校验用户 token 是否有效
     int validateToken(int uid, const std::string& token);
 
+    // 通知 StatusServer 用户主动下线
+    bool logout(int uid);
+
 private:
     StatusGrpcClient();
     std::unique_ptr<StatusConPool> _pool;

@@ -18,4 +18,7 @@ public:
     /// 校验用户 token 是否有效
     /// @return ErrorCodes::SUCCESS 表示有效，其他表示无效或 RPC 失败
     virtual int validateToken(int uid, const std::string& token) = 0;
+
+    /// 通知 StatusServer 用户主动下线
+    virtual bool logout(int uid) = 0;
 };

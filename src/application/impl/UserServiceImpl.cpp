@@ -138,52 +138,17 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
         LOGI(LogModule::Http, "User credential cached for {} uid={}", email, userInfo.uid);
     }
 
-    // 4. 原有会话缓存逻辑保持不变
-    auto cachedSession = _userCache->getSession(userInfo.uid);
-    if (cachedSession)
+    // 4. 每次登录强制向 StatusServer 申请新 token，不重用旧 session
+    LOGI(LogModule::Http, "Login: fetching new ChatServer from StatusServer uid={}",
+         userInfo.uid);
+
+    // 如果已有旧 session，先清理本地缓存（StatusServer GetChatServer 会统一清理后端数据）
+    if (_userCache->getSession(userInfo.uid))
     {
-        // 4.1 会话缓存命中 - 检查 Token 是否过期且仍被 StatusServer 承认
-        if (!cachedSession->_token.empty() && cachedSession->_expire_at > getCurrentTimestamp())
-        {
-            int token_err = _statusRpc->validateToken(userInfo.uid, cachedSession->_token);
-            if (token_err == ErrorCodes::SUCCESS)
-            {
-                // Token 有效，延长缓存时间并直接返回
-                _userCache->extendSession(userInfo.uid, SESSION_TTL_SECONDS);
-
-                const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                         std::chrono::steady_clock::now() - start)
-                                         .count();
-                LOGI(LogModule::Http,
-                     "Login session cache hit: uid={}, email={}, host={}:{} token={} cost={}ms",
-                     userInfo.uid, email, cachedSession->_chat_host, cachedSession->_chat_port,
-                     cachedSession->_token, cost_ms);
-
-                outUid = userInfo.uid;
-                outToken = cachedSession->_token;
-                outHost = cachedSession->_chat_host;
-                outPort = cachedSession->_chat_port;
-                return ErrorCodes::SUCCESS;
-            }
-
-            LOGW(LogModule::Http,
-                 "Login session cache token invalid, refresh token: uid={}, email={}, err={}",
-                 userInfo.uid, email, token_err);
-        }
-        else
-        {
-            LOGI(LogModule::Http,
-                 "Login session cache expired: uid={}, email={}, token_empty={}", userInfo.uid,
-                 email, cachedSession->_token.empty());
-        }
-
-        // Token 已过期或被 StatusServer 判定无效，删除缓存
         _userCache->removeSession(userInfo.uid);
+        LOGI(LogModule::Http, "Login: removed old session cache uid={}", userInfo.uid);
     }
 
-    // 4.2 会话缓存未命中或已过期 - 调用 StatusServer
-    LOGI(LogModule::Http, "Login session cache miss, fetch ChatServer from StatusServer: uid={}",
-         userInfo.uid);
     auto reply = _statusRpc->getChatServer(userInfo.uid);
     if (reply.error())
     {
@@ -264,6 +229,44 @@ int UserServiceImpl::resetPassword(const std::string &email, const std::string &
                              std::chrono::steady_clock::now() - start)
                              .count();
     LOGI(LogModule::Http, "ResetPwd success: email={} cost={}ms", email, cost_ms);
+    return ErrorCodes::SUCCESS;
+}
+
+int UserServiceImpl::logoutUser(int uid)
+{
+    const auto start = std::chrono::steady_clock::now();
+    LOGI(LogModule::Http, "UserServiceImpl::logoutUser uid={}", uid);
+
+    if (uid <= 0)
+    {
+        LOGW(LogModule::Http, "logoutUser: invalid uid={}", uid);
+        return ErrorCodes::RPC_FAILED;
+    }
+
+    // 1. 通知 StatusServer 清理后端数据（不阻塞本地缓存清理）
+    _statusRpc->logout(uid);
+
+    // 2. 清理本地 Redis 缓存
+    if (_userCache->isOnline(uid))
+    {
+        if (_userCache->removeSession(uid))
+        {
+            LOGI(LogModule::Http, "logoutUser: session cache removed uid={}", uid);
+        }
+        else
+        {
+            LOGE(LogModule::Http, "logoutUser: session cache remove failed uid={}", uid);
+        }
+    }
+    else
+    {
+        LOGI(LogModule::Http, "logoutUser: user not online, skip uid={}", uid);
+    }
+
+    const auto cost_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                             std::chrono::steady_clock::now() - start)
+                             .count();
+    LOGI(LogModule::Http, "logoutUser: uid={} cost={}ms", uid, cost_ms);
     return ErrorCodes::SUCCESS;
 }
 

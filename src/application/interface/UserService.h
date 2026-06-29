@@ -29,6 +29,11 @@ public:
     virtual int resetPassword(const std::string &email, const std::string &verifyCode,
                               const std::string &name, const std::string &newPwd) = 0;
 
+    /// 用户主动下线
+    /// @param uid 用户 ID
+    /// @return 错误码（SUCCESS 表示成功）
+    virtual int logoutUser(int uid) = 0;
+
     /// 处理用户下线通知（供 gRPC 入口调用）
     virtual void handleUserOffline(int uid) = 0;
 };

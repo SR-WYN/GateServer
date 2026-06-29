@@ -11,3 +11,8 @@ int StatusRpcClientImpl::validateToken(int uid, const std::string& token)
 {
     return StatusGrpcClient::getInstance().validateToken(uid, token);
 }
+
+bool StatusRpcClientImpl::logout(int uid)
+{
+    return StatusGrpcClient::getInstance().logout(uid);
+}

@@ -14,4 +14,5 @@ public:
     virtual void handleRegister(std::shared_ptr<HttpConnection> conn) = 0;
     virtual void handleLogin(std::shared_ptr<HttpConnection> conn) = 0;
     virtual void handleResetPwd(std::shared_ptr<HttpConnection> conn) = 0;
+    virtual void handleLogout(std::shared_ptr<HttpConnection> conn) = 0;
 };

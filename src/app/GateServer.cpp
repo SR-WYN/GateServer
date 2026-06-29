@@ -95,6 +95,10 @@ int main()
         logicSystem->regPost("/reset_pwd", [userController](std::shared_ptr<HttpConnection> conn) {
             userController->handleResetPwd(conn);
         });
+        logicSystem->regPost("/user_logout",
+                             [userController](std::shared_ptr<HttpConnection> conn) {
+                                 userController->handleLogout(conn);
+                             });
 
         // 5. 读取网关端口
         auto &config = ConfigMgr::getInstance();

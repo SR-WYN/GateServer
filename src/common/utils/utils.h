@@ -1,5 +1,6 @@
 // utils.h - 通用工具集合
 #pragma once
+#include <spdlog/common.h>
 #include <string>
 
 namespace utils::url
@@ -9,3 +10,10 @@ std::string encode(const std::string &str);
 std::string decode(const std::string &str);
 
 } // namespace utils::url
+
+namespace utils::log
+{
+
+spdlog::level::level_enum parseLevel(const std::string &level_str);
+
+} // namespace utils::log

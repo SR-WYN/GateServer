@@ -69,3 +69,45 @@ std::string decode(const std::string &str)
 }
 
 } // namespace utils::url
+
+namespace utils::log
+{
+
+spdlog::level::level_enum parseLevel(const std::string &level_str)
+{
+    std::string level = level_str;
+    std::transform(level.begin(), level.end(), level.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (level == "trace")
+    {
+        return spdlog::level::trace;
+    }
+    if (level == "debug")
+    {
+        return spdlog::level::debug;
+    }
+    if (level == "info")
+    {
+        return spdlog::level::info;
+    }
+    if (level == "warn" || level == "warning")
+    {
+        return spdlog::level::warn;
+    }
+    if (level == "error" || level == "err")
+    {
+        return spdlog::level::err;
+    }
+    if (level == "critical" || level == "fatal")
+    {
+        return spdlog::level::critical;
+    }
+    if (level == "off")
+    {
+        return spdlog::level::off;
+    }
+    return spdlog::level::info;
+}
+
+} // namespace utils::log

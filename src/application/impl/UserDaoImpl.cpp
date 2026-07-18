@@ -20,14 +20,17 @@ namespace
 {
 bool rowExists(MySqlMgr &mgr, const std::string &sql, const std::string &value)
 {
-    return mgr.queryOne(
+    bool found = false;
+    mgr.queryOne(
         sql,
         [&](sql::PreparedStatement &stmt) {
             stmt.setString(1, value);
         },
-        [](sql::ResultSet &) {
+        [&](sql::ResultSet &) {
+            found = true;
             return true;
         });
+    return found;
 }
 } // namespace
 

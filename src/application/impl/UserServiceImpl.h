@@ -32,6 +32,8 @@ public:
 
     void handleUserOffline(int uid) override;
 
+    void handleUserOnline(int uid) override;
+
 private:
     std::shared_ptr<UserDao> _userDao;
     std::shared_ptr<UserCache> _userCache;

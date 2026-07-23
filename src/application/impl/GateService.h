@@ -22,6 +22,11 @@ public:
                                    const message::UserOfflineReq *request,
                                    message::UserOfflineRsp *reply) override;
 
+    /// 处理用户重新上线通知，刷新 Redis session TTL
+    grpc::Status NotifyUserOnline(grpc::ServerContext *context,
+                                  const message::UserOnlineReq *request,
+                                  message::UserOnlineRsp *reply) override;
+
 private:
     std::shared_ptr<UserService> _userService;
 };

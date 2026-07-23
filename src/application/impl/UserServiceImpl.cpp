@@ -295,6 +295,31 @@ void UserServiceImpl::handleUserOffline(int uid)
     });
 }
 
+void UserServiceImpl::handleUserOnline(int uid)
+{
+    const auto start = std::chrono::steady_clock::now();
+    LOGI(LogModule::Http, "User online notified, uid={}", uid);
+
+    // 刷新 Redis session TTL（投递到 Redis 线程池，避免阻塞 gRPC 回调线程）
+    ThreadPoolMgr::getInstance().enqueueRedis([this, uid]() {
+        if (_userCache->isOnline(uid))
+        {
+            if (_userCache->extendSession(uid, constants::business::kSessionTtlSeconds))
+            {
+                LOGI(LogModule::Http, "Session extended for uid={}", uid);
+            }
+            else
+            {
+                LOGE(LogModule::Http, "Session extend failed for uid={}", uid);
+            }
+        }
+        else
+        {
+            LOGI(LogModule::Http, "User not online, skip session extend uid={}", uid);
+        }
+    });
+}
+
 int64_t UserServiceImpl::getCurrentTimestamp()
 {
     using namespace std::chrono;

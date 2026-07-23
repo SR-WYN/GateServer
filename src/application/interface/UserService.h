@@ -36,4 +36,7 @@ public:
 
     /// 处理用户下线通知（供 gRPC 入口调用）
     virtual void handleUserOffline(int uid) = 0;
+
+    /// 处理用户重新上线通知（供 gRPC 入口调用），刷新 Redis session TTL
+    virtual void handleUserOnline(int uid) = 0;
 };

@@ -123,6 +123,15 @@ message ValidateTokenRsp {
   int32 uid = 2;
 }
 
+message ResolveTokenReq {
+  string token = 1;
+}
+
+message ResolveTokenRsp {
+  int32 error = 1;
+  int32 uid = 2;
+}
+
 message KickUserReq {
   int32 uid = 1;
   string reason = 2;
@@ -182,6 +191,7 @@ service StatusService {
   rpc BindUserToNode(BindUserToNodeReq) returns (BindUserToNodeRsp);
   rpc UnbindUser(UnbindUserReq) returns (UnbindUserRsp);
   rpc ValidateToken(ValidateTokenReq) returns (ValidateTokenRsp);
+  rpc ResolveToken(ResolveTokenReq) returns (ResolveTokenRsp);
   rpc RefreshTokenTTL(RefreshTokenTTLReq) returns (RefreshTokenTTLRsp);
   rpc Logout(LogoutReq) returns (LogoutRsp);
   rpc KickUser(KickUserReq) returns (KickUserRsp);

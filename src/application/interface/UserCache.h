@@ -11,8 +11,6 @@ struct UserSession
 {
     int _uid = 0;
     std::string _token;
-    std::string _email;
-    std::string _user_name;
     std::string _chat_host;
     std::string _chat_port;
     int64_t _login_time = 0;
@@ -45,21 +43,6 @@ public:
     /// @param uid 用户 ID
     /// @return 会话信息（不存在返回 nullopt）
     virtual std::optional<UserSession> getSession(int uid) = 0;
-
-    /// 根据 Token 获取 UID
-    /// @param token 登录令牌
-    /// @return 用户 ID（不存在返回 nullopt）
-    virtual std::optional<int> getUidByToken(const std::string &token) = 0;
-
-    /// 根据用户名获取 UID
-    /// @param user_name 用户名
-    /// @return 用户 ID（不存在返回 nullopt）
-    virtual std::optional<int> getUidByName(const std::string &user_name) = 0;
-
-    /// 根据邮箱获取 UID
-    /// @param email 邮箱
-    /// @return 用户 ID（不存在返回 nullopt）
-    virtual std::optional<int> getUidByEmail(const std::string &email) = 0;
 
     /// 删除会话信息
     /// @param uid 用户 ID

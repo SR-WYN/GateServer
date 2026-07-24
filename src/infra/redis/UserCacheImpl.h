@@ -18,9 +18,6 @@ public:
     // ========== 新增会话缓存方法 ==========
     bool saveSession(const UserSession &session, int ttl_seconds) override;
     std::optional<UserSession> getSession(int uid) override;
-    std::optional<int> getUidByToken(const std::string &token) override;
-    std::optional<int> getUidByName(const std::string &user_name) override;
-    std::optional<int> getUidByEmail(const std::string &email) override;
     bool removeSession(int uid) override;
     bool extendSession(int uid, int ttl_seconds) override;
     bool isOnline(int uid) override;
@@ -34,12 +31,5 @@ public:
 
 private:
     static std::string sessionKey(int uid);
-    static std::string nameKey(const std::string &name);
-    static std::string emailKey(const std::string &email);
-    static std::string tokenKey(const std::string &token);
-    static std::string onlineUsersKey();
-
-
-
     static std::string userCredKey(const std::string &email);
 };

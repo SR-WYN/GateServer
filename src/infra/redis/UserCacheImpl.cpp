@@ -2,6 +2,7 @@
 #include "UserCacheImpl.h"
 
 #include "Log.h"
+#include "LogModule.h"
 #include "RedisMgr.h"
 
 #include <chrono>
@@ -38,10 +39,8 @@ bool UserCacheImpl::saveSession(const UserSession &session, int ttl_seconds)
         auto &redis = RedisMgr::getInstance();
         std::string session_key = sessionKey(session._uid);
 
-        // 使用 Hash 存储会话信息
+        // 使用 Hash 存储会话信息（精简字段，不再存 email/name）
         redis.hSet(session_key, "token", session._token);
-        redis.hSet(session_key, "e_mail", session._email);
-        redis.hSet(session_key, "user_name", session._user_name);
         redis.hSet(session_key, "chat_host", session._chat_host);
         redis.hSet(session_key, "chat_port", session._chat_port);
         redis.hSet(session_key, "login_time", std::to_string(session._login_time));
@@ -50,17 +49,8 @@ bool UserCacheImpl::saveSession(const UserSession &session, int ttl_seconds)
         // 设置过期时间
         redis.expire(session_key, ttl_seconds);
 
-        // 建立索引
-        redis.set(nameKey(session._user_name), std::to_string(session._uid), ttl_seconds);
-        redis.set(emailKey(session._email), std::to_string(session._uid), ttl_seconds);
-        redis.set(tokenKey(session._token), std::to_string(session._uid), ttl_seconds);
-
-        // 加入在线集合
-        redis.sAdd(onlineUsersKey(), std::to_string(session._uid));
-
-        LOGI(LogModule::Redis, "Session saved for uid={} email={} host={}:{} expire_at={}",
-             session._uid, session._email, session._chat_host, session._chat_port,
-             session._expire_at);
+        LOGI(LogModule::Redis, "Session saved for uid={} host={}:{} expire_at={}", session._uid,
+             session._chat_host, session._chat_port, session._expire_at);
         return true;
     }
     catch (const std::exception &e)
@@ -86,77 +76,18 @@ std::optional<UserSession> UserCacheImpl::getSession(int uid)
         UserSession session;
         session._uid = uid;
         session._token = fields["token"];
-        session._email = fields["e_mail"];
-        session._user_name = fields["user_name"];
         session._chat_host = fields["chat_host"];
         session._chat_port = fields["chat_port"];
         session._login_time = std::stoll(fields["login_time"]);
         session._expire_at = std::stoll(fields["expire_at"]);
 
-        LOGI(LogModule::Redis, "Session get hit for uid={} email={} expire_at={}", session._uid,
-             session._email, session._expire_at);
+        LOGI(LogModule::Redis, "Session get hit for uid={} expire_at={}", session._uid,
+             session._expire_at);
         return session;
     }
     catch (const std::exception &e)
     {
         LOGE(LogModule::Redis, "Failed to get session for uid={}: {}", uid, e.what());
-        return std::nullopt;
-    }
-}
-
-std::optional<int> UserCacheImpl::getUidByToken(const std::string &token)
-{
-    try
-    {
-        auto &redis = RedisMgr::getInstance();
-        std::string uid_str;
-        if (redis.get(tokenKey(token), uid_str) && !uid_str.empty())
-        {
-            return std::stoi(uid_str);
-        }
-        return std::nullopt;
-    }
-    catch (const std::exception &e)
-    {
-        LOGE(LogModule::Redis, "Failed to get uid by token: {}", e.what());
-        return std::nullopt;
-    }
-}
-
-std::optional<int> UserCacheImpl::getUidByName(const std::string &user_name)
-{
-    try
-    {
-        auto &redis = RedisMgr::getInstance();
-        std::string uid_str;
-        if (redis.get(nameKey(user_name), uid_str) && !uid_str.empty())
-        {
-            return std::stoi(uid_str);
-        }
-        return std::nullopt;
-    }
-    catch (const std::exception &e)
-    {
-        LOGE(LogModule::Redis, "Failed to get uid by name: {}", e.what());
-        return std::nullopt;
-    }
-}
-
-std::optional<int> UserCacheImpl::getUidByEmail(const std::string &email)
-{
-    try
-    {
-        auto &redis = RedisMgr::getInstance();
-        std::string uid_str;
-        if (redis.get(emailKey(email), uid_str) && !uid_str.empty())
-        {
-            return std::stoi(uid_str);
-        }
-        return std::nullopt;
-    }
-    catch (const std::exception &e)
-    {
-        LOGE(LogModule::Redis, "Failed to get uid by email: {}", e.what());
         return std::nullopt;
     }
 }
@@ -167,31 +98,7 @@ bool UserCacheImpl::removeSession(int uid)
     {
         auto &redis = RedisMgr::getInstance();
         std::string session_key = sessionKey(uid);
-
-        // 先获取 Token 和用户名用于清理索引
-        std::string token = redis.hGet(session_key, "token");
-        std::string user_name = redis.hGet(session_key, "user_name");
-        std::string email = redis.hGet(session_key, "e_mail");
-
-        // 删除会话数据
         redis.del(session_key);
-
-        // 清理索引
-        if (!user_name.empty())
-        {
-            redis.del(nameKey(user_name));
-        }
-        if (!email.empty())
-        {
-            redis.del(emailKey(email));
-        }
-        if (!token.empty())
-        {
-            redis.del(tokenKey(token));
-        }
-
-        // 从在线集合移除
-        redis.sRem(onlineUsersKey(), std::to_string(uid));
 
         LOGI(LogModule::Redis, "Session removed for uid={}", uid);
         return true;
@@ -209,28 +116,7 @@ bool UserCacheImpl::extendSession(int uid, int ttl_seconds)
     {
         auto &redis = RedisMgr::getInstance();
         std::string session_key = sessionKey(uid);
-
-        // 延长会话过期时间
         redis.expire(session_key, ttl_seconds);
-
-        // 延长索引过期时间
-        std::string user_name = redis.hGet(session_key, "user_name");
-        if (!user_name.empty())
-        {
-            redis.expire(nameKey(user_name), ttl_seconds);
-        }
-
-        std::string email = redis.hGet(session_key, "e_mail");
-        if (!email.empty())
-        {
-            redis.expire(emailKey(email), ttl_seconds);
-        }
-
-        std::string token = redis.hGet(session_key, "token");
-        if (!token.empty())
-        {
-            redis.expire(tokenKey(token), ttl_seconds);
-        }
 
         LOGI(LogModule::Redis, "Session extended for uid={} ttl={}s", uid, ttl_seconds);
         return true;
@@ -246,8 +132,7 @@ bool UserCacheImpl::isOnline(int uid)
 {
     try
     {
-        auto &redis = RedisMgr::getInstance();
-        return redis.sIsMember(onlineUsersKey(), std::to_string(uid));
+        return existsKey(sessionKey(uid));
     }
     catch (const std::exception &e)
     {
@@ -331,26 +216,6 @@ bool UserCacheImpl::invalidateUserCredential(const std::string &email)
 std::string UserCacheImpl::sessionKey(int uid)
 {
     return std::string(constants::redis::kSessionPrefix) + std::to_string(uid);
-}
-
-std::string UserCacheImpl::nameKey(const std::string &name)
-{
-    return std::string(constants::redis::kNamePrefix) + name;
-}
-
-std::string UserCacheImpl::emailKey(const std::string &email)
-{
-    return std::string(constants::redis::kEmailPrefix) + email;
-}
-
-std::string UserCacheImpl::tokenKey(const std::string &token)
-{
-    return std::string(constants::redis::kTokenPrefix) + token;
-}
-
-std::string UserCacheImpl::onlineUsersKey()
-{
-    return constants::redis::kOnlineUsersKey;
 }
 
 std::string UserCacheImpl::userCredKey(const std::string &email)

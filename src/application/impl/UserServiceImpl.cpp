@@ -160,8 +160,6 @@ int UserServiceImpl::loginUser(const std::string &email, const std::string &pass
     UserSession session;
     session._uid = userInfo.uid;
     session._token = reply.token();
-    session._email = email;
-    session._user_name = userInfo.name;
     session._chat_host = reply.host();
     session._chat_port = reply.port();
     session._login_time = getCurrentTimestamp();
